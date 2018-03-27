@@ -1,12 +1,6 @@
-+++
-title = ""
-description = ""
-tags = [
-    "go",
-    "development",
-]
-topics = [
-    "Development",
-    "golang",
-]
-+++
+---
+title: "{{ replace .Name "-" " " | title }}"
+date: {{ .Date }}
+draft: true
+---
+

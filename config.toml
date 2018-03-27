@@ -1,14 +1,39 @@
-baseurl = "http://coldwalker.com/"
-title = "Hacking Management"
-languageCode = "en-us"
+baseURL = "https://coldwalker.com/"
+languageCode = "zh-CN"
+title = "凛冬夜行"
+theme="hugo_theme_robust"
+canonifyurls = true
+pygmentsStyle = "monokai"
+pygmentsUseClasses = false
+hasCJKLanguage = true
+enableRobotsTXT = true
+PygmentsCodeFences = true
+image = "images/me.JPG"
+copyright = "© This post is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License，please give source if you wish to quote or reproduce."
 disqusShortname = "ralin"
-copyright = "Copyright (c) 2008 - 2014, Steve Francia; all rights reserved."
-MetaDataFormat = "yaml"
+googleAnalytics = "UA-116113253-1"
 
-[author]
-    name = "Steve Francia"
+[permalinks]
+post = "/:year/:month/:/:filename/"
 
-[indexes]
-    tag = "tags"
-    topic = "topics"
+[[menu.main]]
+    name = "about Me"
+    pre = "<i class='fa fa-heart'></i>"
+    weight = -110
+    identifier = "about"
+    url = "/2018/03/about/"
 
+[params]
+  dateformat = "2006-01-02" # Optional
+  MonthFormat = "2006-01"
+  changyan = true
+  changyanId = "cytwFfxww"
+  changyanConf = "prod_36cf3e358f9305067d10b0652031cb07"
+  baiduTongji = "f13b34958e759c7a5400b5cdf455f21c"
+  Archive = "Archive"
+
+[blackfriday]
+  angledQuotes = true
+  fractions = false
+  plainIDAnchors = true
+  extensions = ["hardLineBreak"]
