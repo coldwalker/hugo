@@ -1,0 +1,13 @@
+---
+baseurl: "https://coldwalker.com/"
+DefaultContentLanguage: "zh-cn"
+hasCJKLanguage: true
+languageCode: "zh-cn"
+title: "凛冬夜行"
+theme: "hugo_theme_beg"
+metaDataFormat: "yaml"
+algolia:
+  index: "coldwalker-blog"
+  key: "8b64a992ff8bc968dfbb192763f6277b"
+  appID: "YP0YEWOT73"
+---

@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+<meta name="pinterest" content="nopin">
+<meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
+<meta name="generator" content="Hugo 0.38-DEV" />
+
+
+
+<link rel="canonical" href="https://coldwalker.com/2018/08//troubleshooter_native_memory_increase/">
+
+
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/solarized_dark.min.css">
+    <link rel="stylesheet" href="https://coldwalker.com/css/search.css" />
+    <title>Java堆外内存增长问题排查Case - 凛冬夜行</title>
+    
+<meta name="description" content="最近排查一个线上java服务常驻内存异常高的问题，大概现象是：java堆Xmx配置了8G，但运行一段时间后常驻内存RES从5G逐渐增长到13">
+
+<meta property="og:title" content="Java堆外内存增长问题排查Case - 凛冬夜行">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://coldwalker.com/2018/08//troubleshooter_native_memory_increase/">
+<meta property="og:image" content="https://coldwalker.com/images/IMG_6127.JPG">
+<meta property="og:site_name" content="凛冬夜行">
+<meta property="og:description" content="最近排查一个线上java服务常驻内存异常高的问题，大概现象是：java堆Xmx配置了8G，但运行一段时间后常驻内存RES从5G逐渐增长到13">
+<meta property="og:locale" content="ja_JP">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="凛冬夜行">
+<meta name="twitter:url" content="https://coldwalker.com/2018/08//troubleshooter_native_memory_increase/">
+<meta name="twitter:title" content="Java堆外内存增长问题排查Case - 凛冬夜行">
+<meta name="twitter:description" content="最近排查一个线上java服务常驻内存异常高的问题，大概现象是：java堆Xmx配置了8G，但运行一段时间后常驻内存RES从5G逐渐增长到13">
+<meta name="twitter:image" content="https://coldwalker.com/images/IMG_6127.JPG">
+
+
+<script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "NewsArticle",
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id":"https://coldwalker.com/"
+    },
+    "headline": "Java堆外内存增长问题排查Case - 凛冬夜行",
+    "image": {
+      "@type": "ImageObject",
+      "url": "https://coldwalker.com/images/IMG_6127.JPG",
+      "height": 800,
+      "width": 800
+    },
+    "datePublished": "2018-08-15T16:30:00JST",
+    "dateModified": "2018-08-15T16:30:00JST",
+    "author": {
+      "@type": "Person",
+      "name": "凛冬夜行"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "凛冬夜行",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://coldwalker.com/images/logo.png",
+        "width": 600,
+        "height": 60
+      }
+    },
+    "description": "最近排查一个线上java服务常驻内存异常高的问题，大概现象是：java堆Xmx配置了8G，但运行一段时间后常驻内存RES从5G逐渐增长到13"
+  }
+</script>
+
+
+    <link href="https://coldwalker.com/css/styles.css" rel="stylesheet">
+    
+
+  </head>
+
+  <body>
+    
+        
+            
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-116113253-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+        
+        
+            <script>
+            var _hmt = _hmt || [];
+            (function() {
+              var hm = document.createElement("script");
+              hm.src = "https://hm.baidu.com/hm.js?f13b34958e759c7a5400b5cdf455f21c";
+              var s = document.getElementsByTagName("script")[0];
+              s.parentNode.insertBefore(hm, s);
+            })();
+            </script>
+        
+   
+    
+
+    <header class="l-header">
+      <nav class="navbar navbar-default">
+        <div class="container">
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
+              <span class="sr-only">Toggle navigation</span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="https://coldwalker.com/">凛冬夜行</a>
+          </div>
+
+          
+          <div id="navbar" class="collapse navbar-collapse">
+            
+            <ul class="nav navbar-nav navbar-right">
+              
+              
+              <li><a href="https://coldwalker.com/2018/03/about/">about Me</a></li>
+              
+              
+              
+              <li>
+                  <a href="#modalSearch" data-toggle="modal" data-target="#modalSearch" style="outline: none;">
+                    <span class="hidden-sm hidden-md hidden-lg"></span> <span id="searchGlyph" class="glyphicon glyphicon-search"></span>
+                  </a>
+             </li>
+                
+            </ul>
+            
+          </div>
+          
+
+        </div>
+    
+         <div id="modalSearch" class="modal fade" role="dialog">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal">&times;</button>
+                  <h4 class="modal-title">Search coldwalker.com</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="aa-input-container" id="aa-input-container">
+    <input type="search" id="aa-search-input" class="aa-input-search" placeholder="Search for titles or URIs..." name="search" autocomplete="off" />
+    <svg class="aa-input-icon" viewBox="654 -372 1664 1664">
+        <path d="M1806,332c0-123.3-43.8-228.8-131.5-316.5C1586.8-72.2,1481.3-116,1358-116s-228.8,43.8-316.5,131.5  C953.8,103.2,910,208.7,910,332s43.8,228.8,131.5,316.5C1129.2,736.2,1234.7,780,1358,780s228.8-43.8,316.5-131.5  C1762.2,560.8,1806,455.3,1806,332z M2318,1164c0,34.7-12.7,64.7-38,90s-55.3,38-90,38c-36,0-66-12.7-90-38l-343-342  c-119.3,82.7-252.3,124-399,124c-95.3,0-186.5-18.5-273.5-55.5s-162-87-225-150s-113-138-150-225S654,427.3,654,332  s18.5-186.5,55.5-273.5s87-162,150-225s138-113,225-150S1262.7-372,1358-372s186.5,18.5,273.5,55.5s162,87,225,150s113,138,150,225  S2062,236.7,2062,332c0,146.7-41.3,279.7-124,399l343,343C2305.7,1098.7,2318,1128.7,2318,1164z" />
+    </svg>
+</div>
+<script src="https://res.cloudinary.com/jimmysong/raw/upload/rootsongjc-hugo/algoliasearch.min.js"></script>
+<script src="https://res.cloudinary.com/jimmysong/raw/upload/rootsongjc-hugo/autocomplete.min.js"></script>
+<script>
+var client = algoliasearch("YP0YEWOT73", "546beefe9023181eb1827f484030b66b");
+var index = client.initIndex('coldwalker-blog');
+autocomplete('#aa-search-input',
+{ hint: false}, {
+    source: autocomplete.sources.hits(index, {hitsPerPage: 8}),
+    displayKey: 'name',
+    templates: {
+        suggestion: function(suggestion) {
+            console.log(suggestion);
+            var postDate = new Date(suggestion.date);
+            var postYear = postDate.getFullYear();
+            var postMonth = postDate.getMonth() + 1;
+            if(postMonth < 10)
+            postMonth = "0" + postMonth;
+            var title = suggestion.objectID.split("/", 2)[1];            
+            return '<span>' + '<a href="https://coldwalker.com/' + postYear + "/" + postMonth + "/" + title + '">' +
+            suggestion._highlightResult.title.value + '</a></span>';
+        }
+    }
+});
+</script>
+
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal">close</button>
+                </div>
+              </div>
+            </div>
+        </div>
+
+      </nav>
+    </header>
+
+    <main>
+      <div class="container">
+        
+<div class="row">
+  <div class="col-md-8">
+
+    <nav class="p-crumb">
+      <ol class="breadcrumb">
+        <li><a href="https://coldwalker.com/"><i class="fa fa-home" aria-hidden="true"></i></a></li>
+        
+        <li itemscope="" itemtype="http://data-vocabulary.org/Breadcrumb"><a href="https://coldwalker.com/post/" itemprop="url"><span itemprop="title">post</span></a></li>
+        
+        <li class="active">Java堆外内存增长问题排查Case</li>
+      </ol>
+    </nav>
+
+    <article class="single">
+  <header>
+    <ul class="p-facts">
+      <li><i class="fa fa-calendar" aria-hidden="true"></i><time datetime="2018-08-15T16:30:00JST">2018-08-15</time></li>
+      <li><i class="fa fa-bookmark" aria-hidden="true"></i><a href="https://coldwalker.com/post/">post</a></li>
+      
+    </ul>
+
+    <h1 class="title">Java堆外内存增长问题排查Case</h1>
+  </header>
+
+  <div class="thumb" style="background-image: url(https://coldwalker.com/images/IMG_6127.JPG);"></div>
+
+  <div class="article-body">
+
+<p>最近排查一个线上java服务常驻内存异常高的问题，大概现象是：java堆Xmx配置了8G，但运行一段时间后常驻内存RES从5G逐渐增长到13G #补图#，导致机器开始swap从而服务整体变慢。<br />
+由于Xmx只配置了8G但RES常驻内存达到了13G，多出了5G堆外内存，经验上判断这里超出太多不太正常。</p>
+
+<h3 id="前情提要-jvm内存模型">前情提要&ndash;JVM内存模型</h3>
+
+<p>开始逐步对堆外内存进行排查，首先了解一下JVM内存模型。根据JVM规范，JVM运行时数据区共分为虚拟机栈、堆、方法区、程序计数器、本地方法栈五个部分。<br />
+<img src="https://coldwalker.com/images/o_dc695f48-4189-4fc7-b950-ed25f6c1521708518830.jpg" alt="o_dc695f48-4189-4fc7-b950-ed25f6c1521708518830" />￼</p>
+
+<ul>
+<li>虚拟机栈：每个线程有一个私有的栈，随着线程的创建而创建。栈里面存着的是一种叫“栈帧”的东西，每个方法会创建一个栈帧，栈帧中存放了局部变量表（基本数据类型和对象引用）、操作数栈、方法出口等信息。栈的大小可以固定也可以动态扩展。当栈调用深度大于JVM所允许的范围，会抛出StackOverflowError的错误，不过这个深度范围不是一个恒定的值。虚拟机栈除了上述错误外，还有另一种错误，那就是当申请不到空间时，会抛出 OutOfMemoryError。<br /></li>
+<li>本地方法栈：与虚拟机栈类似，区别是虚拟机栈执行java方法，本地方法站执行native方法。在虚拟机规范中对本地方法栈中方法使用的语言、使用方法与数据结构没有强制规定，因此虚拟机可以自由实现它。本地方法栈也可以抛出StackOverflowError和OutOfMemoryError。<br /></li>
+<li>PC 寄存器，也叫程序计数器。可以看成是当前线程所执行的字节码的行号指示器。在任何一个确定的时刻，一个处理器（对于多内核来说是一个内核）都只会执行一条线程中的指令。因此，为了线程切换后能恢复到正确的执行位置，每条线程都需要一个独立的程序计数器，我们称这类内存区域为“线程私有”内存。倘若当前线程执行的是 JAVA 的方法，则该寄存器中保存当前执行指令的地址；倘若执行的是native 方法，则PC寄存器中为空。<br /></li>
+<li>堆内存。堆内存是 JVM 所有线程共享的部分，在虚拟机启动的时候就已经创建。所有的对象和数组都在堆上进行分配。这部分空间可通过 GC 进行回收。当申请不到空间时会抛出 OutOfMemoryError。<br /></li>
+<li>方法区也是所有线程共享。主要用于存储类的信息、常量池、静态变量、及时编译器编译后的代码等数据。方法区逻辑上属于堆的一部分，但是为了与堆进行区分，通常又叫“非堆”。<br />
+<br /></li>
+</ul>
+
+<h4 id="前情提要-permgen-永久代-和-metaspace-元空间">前情提要&ndash;PermGen（永久代）和 Metaspace（元空间）</h4>
+
+<p>PermGen space 和 Metaspace是HotSpot对于方法区的不同实现。在Java虚拟机（以下简称JVM）中，类包含其对应的元数据，比如类名,父类名,类的类型,访问修饰符,字段信息,方法信息,静态变量,常量,类加载器的引用,类的引用。在HotSpot JDK 1.8之前这些类元数据信息存放在一个叫永久代的区域（PermGen space），永久代一段连续的内存空间。在JDK 1.8开始，方法区实现采用Metaspace代替，这些元数据信息直接使用本地内存来分配。元空间与永久代之间最大的区别在于：元空间并不在虚拟机中，而是使用本地内存。</p>
+
+<h4 id="堆外内存">堆外内存</h4>
+
+<p>java 8下是指除了Xmx设置的java堆（java 8以下版本还包括MaxPermSize设定的持久代大小）外，java进程使用的其他内存。主要包括：DirectByteBuffer分配的内存，JNI里分配的内存，线程栈分配占用的系统内存，jvm本身运行过程分配的内存，codeCache，java 8里还包括metaspace元数据空间。</p>
+
+<h4 id="分析java堆">分析java堆</h4>
+
+<p>由于现象是RES比较高，先看一下java堆是否有异常。把java堆dump下来仔细排查一下，jmap -histo:live pid，发现整个堆回收完也才几百兆，远不到8G的Xmx的上限值，GC日志看着也没啥异常。基本排查java堆内存泄露的可能性。<br />
+<img src="https://coldwalker.com/images/15331172189388.jpg" alt="" />￼</p>
+
+<h4 id="分析directbytebuffer的占用">分析DirectByteBuffer的占用</h4>
+
+<h5 id="directbytebuffer简单了解">DirectByteBuffer简单了解</h5>
+
+<p>由于服务使用的RPC框架底层采用了Netty等NIO框架，会使用到DirectByteBuffer这种“冰山对象”，先简单排查一下。关于DirectByteBuffer先介绍一下：JDK 1.5之后ByteBuffer类提供allocateDirect(int capacity)进行堆外内存的申请，底层通过unsafe.allocateMemory(size)实现，会调用malloc方法进行内存分配。实际上，在java堆里是维护了一个记录堆外地址和大小的DirectByteBuffer的对象，所以GC是能通过操作DirectByteBuffer对象来间接操作对应的堆外内存，从而达到释放堆外内存的目的。但如果一旦这个DirectByteBuffer对象熬过了young GC到达了Old区，同时Old区一直又没做CMS GC或者Full GC的话，这些“冰山对象”会将系统物理内存慢慢消耗掉。对于这种情况JVM留了后手，Bits给DirectByteBuffer前首先需要向Bits类申请额度，Bits类维护了一个全局的totalCapacity变量，记录着全部DirectByteBuffer的总大小，每次申请，都先看看是否超限（堆外内存的限额默认与堆内内存Xmx设定相仿），如果已经超限，会主动执行Sytem.gc()，System.gc()会对新生代的老生代都会进行内存回收，这样会比较彻底地回收DirectByteBuffer对象以及他们关联的堆外内存。但如果启动时通过-DisableExplicitGC禁止了System.gc()，那么这里就会出现比较严重的问题，导致回收不了DirectByteBuffer底下的堆外内存了。所以在类似Netty的框架里对DirectByteBuffer是框架自己主动回收来避免这个问题。<br />
+<img src="https://coldwalker.com/images/15331235138702.jpg" alt="" />￼</p>
+
+<h5 id="directbytebuffer为什么要用堆外内存">DirectByteBuffer为什么要用堆外内存</h5>
+
+<p>DirectByteBuffer是直接通过native方法使用malloc分配内存，这块内存位于java堆之外，对GC没有影响；其次，在通信场景下，堆外内存能减少IO时的内存复制，不需要堆内存Buffer拷贝一份到直接内存中，然后才写入Socket中。所以DirectByteBuffer一般用于通信过程中作为缓冲池来减少内存拷贝。当然，由于直接用malloc在OS里申请一段内存，比在已申请好的JVM堆内内存里划一块出来要慢，所以在Netty中一般用池化的 PooledDirectByteBuf 对DirectByteBuffer进行重用进一步提升性能。</p>
+
+<h5 id="如何排查directbytebuffer的使用情况">如何排查DirectByteBuffer的使用情况</h5>
+
+<p>JMX提供了监控direct buffer的MXBean，启动服务时开启-Dcom.sun.management.jmxremote.port=9527 -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=10.79.40.147，JMC挂上后运行一段时间，此时Xmx是8G的情况下整体RES逐渐增长到13G，MBean里找到java.nio.BufferPool下的direct节点，查看direct buffer的情况，发现总共才213M。为了进一步排除，在启动时通过-XX:MaxDirectMemorySize来限制DirectByteBuffer的最大限额，调整为1G后，进程整体常驻内存的增长并没有限制住，因此这里基本排除了DirectByteBuffer的嫌疑。<br />
+<img src="https://coldwalker.com/images/15331238716181.jpg" alt="" />￼</p>
+
+<h4 id="使用nmt排查jvm原生内存使用">使用NMT排查JVM原生内存使用</h4>
+
+<h5 id="native-memory-tracking-nmt-使用">Native Memory Tracking（NMT）使用</h5>
+
+<p>NMT是Java7U40引入的HotSpot新特性，可用于监控JVM原生内存的使用，但比较可惜的是，目前的NMT不能监控到JVM之外或原生库分配的内存。java进程启动时指定开启NMT（有一定的性能损耗），输出级别可以设置为“summary”或“detail”级别。如：</p>
+
+<pre><code>-XX:NativeMemoryTracking=summary 或者 -XX:NativeMemoryTracking=detail
+</code></pre>
+
+<p>开启后，通过jcmd可以访问收集到的数据。</p>
+
+<pre><code>jcmd &lt;pid&gt; VM.native_memory [summary | detail | baseline | summary.diff | detail.diff 
+</code></pre>
+
+<p>如：jcmd 11 VM.native_memory，输出如下：</p>
+
+<pre><code>Native Memory Tracking:
+
+Total: reserved=12259645KB（保留内存）, committed=11036265KB （提交内存）
+堆内存使用情况，保留内存和提交内存和Xms、Xmx一致，都是8G。
+-                 Java Heap (reserved=8388608KB, committed=8388608KB)
+                            (mmap: reserved=8388608KB, committed=8388608KB)
+用于存储类元数据信息使用到的原生内存，总共12045个类，整体实际使用了79M内存。
+-                     Class (reserved=1119963KB, committed=79751KB)
+                            (classes #12045)
+                            (malloc=1755KB #29277)
+                            (mmap: reserved=1118208KB, committed=77996KB)
+总共2064个线程，提交内存是2.1G左右，一个线程1M，和设置Xss1m相符。
+-                    Thread (reserved=2130294KB, committed=2130294KB)
+                            (thread #2064)
+                            (stack: reserved=2120764KB, committed=2120764KB)
+                            (malloc=6824KB #10341)
+                            (arena=2706KB #4127)
+JIT的代码缓存，12045个类JIT编译后代码缓存整体使用79M内存。
+-                      Code (reserved=263071KB, committed=79903KB)
+                            (malloc=13471KB #15191)
+                            (mmap: reserved=249600KB, committed=66432KB)
+GC相关使用到的一些堆外内存，比如GC算法的处理锁会使用一些堆外空间。118M左右。
+-                        GC (reserved=118432KB, committed=118432KB)
+                            (malloc=93848KB #453)
+                            (mmap: reserved=24584KB, committed=24584KB)
+JAVA编译器自身操作使用到的一些堆外内存，很少。
+-                  Compiler (reserved=975KB, committed=975KB)
+                            (malloc=844KB #1074)
+                            (arena=131KB #3)
+Internal：memory used by the command line parser, JVMTI, properties等。
+-                  Internal (reserved=117158KB, committed=117158KB)
+                            (malloc=117126KB #44857)
+                            (mmap: reserved=32KB, committed=32KB)
+Symbol：保留字符串（Interned String）的引用与符号表引用放在这里，17M左右
+-                    Symbol (reserved=17133KB, committed=17133KB)
+                            (malloc=13354KB #145640)
+                            (arena=3780KB #1)
+NMT本身占用的堆外内存，4M左右
+-    Native Memory Tracking (reserved=4402KB, committed=4402KB)
+                            (malloc=396KB #5287)
+                            (tracking overhead=4006KB)
+不知道啥，用的很少。
+-               Arena Chunk (reserved=272KB, committed=272KB)
+                            (malloc=272KB)
+其他未分类的堆外内存占用，100M左右。
+-                   Unknown (reserved=99336KB, committed=99336KB)
+                            (mmap: reserved=99336KB, committed=99336KB)
+</code></pre>
+
+<ul>
+<li><p>保留内存（reserved）：reserved memory 是指JVM 通过mmaped PROT_NONE 申请的虚拟地址空间，在页表中已经存在了记录（entries），保证了其他进程不会被占用，且保证了逻辑地址的连续性，能简化指针运算。</p></li>
+
+<li><p>提交内存（commited）：committed memory 是JVM向操做系统实际分配的内存（malloc/mmap）,mmaped PROT_READ | PROT_WRITE,仍然会page faults，但是跟 reserved 不同，完全内核处理像什么也没发生一样。</p></li>
+</ul>
+
+<p><strong>这里需要注意的是：由于malloc/mmap的lazy allocation and paging机制，即使是commited的内存，也不一定会真正分配物理内存。</strong></p>
+
+<pre><code>malloc/mmap is lazy unless told otherwise. Pages are only backed by physical memory once they're accessed.
+</code></pre>
+
+<p><em>Tips：由于内存是一直在缓慢增长，因此在使用NMT跟踪堆外内存时，一个比较好的办法是，先建立一个内存使用基线，一段时间后再用当时数据和基线进行差别比较，这样比较容易定位问题。</em></p>
+
+<pre><code>jcmd 11 VM.native_memory baseline
+</code></pre>
+
+<p>同时pmap看一下物理内存的分配，RSS占用了10G。</p>
+
+<pre><code>pmap -x 11 | sort -n -k3
+</code></pre>
+
+<p><img src="https://coldwalker.com/images/15332046869086.jpg" alt="" />￼</p>
+
+<p>运行一段时间后，做一下summary级别的diff，看下内存变化，同时再次pmap看下RSS增长情况。</p>
+
+<pre><code>jcmd 11 VM.native_memory summary.diff
+Native Memory Tracking:
+
+Total: reserved=13089769KB +112323KB, committed=11877285KB +117915KB
+
+-                 Java Heap (reserved=8388608KB, committed=8388608KB)
+                            (mmap: reserved=8388608KB, committed=8388608KB)
+
+-                     Class (reserved=1126527KB +2161KB, committed=85771KB +2033KB)
+                            (classes #12682 +154)
+                            (malloc=2175KB +113KB #37289 +2205)
+                            (mmap: reserved=1124352KB +2048KB, committed=83596KB +1920KB)
+
+-                    Thread (reserved=2861485KB +94989KB, committed=2861485KB +94989KB)
+                            (thread #2772 +92)
+                            (stack: reserved=2848588KB +94576KB, committed=2848588KB +94576KB)
+                            (malloc=9169KB +305KB #13881 +460)
+                            (arena=3728KB +108 #5543 +184)
+
+-                      Code (reserved=265858KB +1146KB, committed=94130KB +6866KB)
+                            (malloc=16258KB +1146KB #18187 +1146)
+                            (mmap: reserved=249600KB, committed=77872KB +5720KB)
+
+-                        GC (reserved=118433KB +1KB, committed=118433KB +1KB)
+                            (malloc=93849KB +1KB #487 +24)
+                            (mmap: reserved=24584KB, committed=24584KB)
+
+-                  Compiler (reserved=1956KB +253KB, committed=1956KB +253KB)
+                            (malloc=1826KB +253KB #2098 +271)
+                            (arena=131KB #3)
+
+-                  Internal (reserved=203932KB +13143KB, committed=203932KB +13143KB)
+                            (malloc=203900KB +13143KB #62342 +3942)
+                            (mmap: reserved=32KB, committed=32KB)
+
+-                    Symbol (reserved=17820KB +108KB, committed=17820KB +108KB)
+                            (malloc=13977KB +76KB #152204 +257)
+                            (arena=3844KB +32 #1)
+
+-    Native Memory Tracking (reserved=5519KB +517KB, committed=5519KB +517KB)
+                            (malloc=797KB +325KB #9992 +3789)
+                            (tracking overhead=4722KB +192KB)
+
+-               Arena Chunk (reserved=294KB +5KB, committed=294KB +5KB)
+                            (malloc=294KB +5KB)
+
+-                   Unknown (reserved=99336KB, committed=99336KB)
+                            (mmap: reserved=99336KB, committed=99336KB
+</code></pre>
+
+<p><img src="https://coldwalker.com/images/15332669357421.jpg" alt="" />￼</p>
+
+<p>发现这段时间pmap看到的RSS增长了3G多，但NMT观察到的内存增长了不到120M，还有大概2G多常驻内存不知去向，因此也基本排除了由于JVM自身管理的堆外内存的嫌疑。</p>
+
+<h4 id="排查metaspace元空间的堆外内存占用">排查Metaspace元空间的堆外内存占用</h4>
+
+<p>由于线上使用的是JDK8，前面提到，JDK8里的元空间实际上使用的也是堆外内存，默认没有设置元空间大小的情况下，元空间最大堆外内存大小和Xmx是一致的。JMC连上后看下内存tab下metaspace一栏的内存占用情况，发现元空间只占用不到80M内存，也排除了它的可能性。实在不放心的话可以通过-XX:MaxMetaspaceSize设置元空间使用堆外内存的上限。<br />
+<img src="https://coldwalker.com/images/15332080269604.jpg" alt="" />￼</p>
+
+<h4 id="gdb分析内存块内容">gdb分析内存块内容</h4>
+
+<p>上面提到使用pmap来查看进程的内存映射，pmap命令实际是读取了/proc/pid/maps和/porc/pid/smaps文件来输出。发现一个细节，pmap取出的内存映射发现很多64M大小的内存块。这种内存块逐渐变多且占用的RSS常驻内存也逐渐增长到reserved保留内存大小，内存增长的2G多基本上也是由于这些64M的内存块导致的，因此看一下这些内存块里具体内容。</p>
+
+<h5 id="strace挂上监控下内存分配和回收的系统调用">strace挂上监控下内存分配和回收的系统调用：</h5>
+
+<pre><code>strace -o /data1/weibo/logs/strace_output2.txt -T -tt -e mmap,munmap,mprotect -fp 12
+</code></pre>
+
+<p>看内存申请和释放的情况：</p>
+
+<pre><code>cat ../logs/strace_output2.txt | grep mprotect | grep -v resumed | awk '{print int($4)}' | sort -rn | head -5
+
+cat ../logs/strace_output2.txt | grep mmap | grep -v resumed | awk '{print int($4)}' | sort -rn | head -5
+
+cat ../logs/strace_output2.txt | grep munmap | grep -v resumed | awk '{print int($4)}' | sort -rn | head -5
+</code></pre>
+
+<p>配合pmap -x 10看一下实际内存分配情况：<br />
+<img src="https://coldwalker.com/images/15332094618358.jpg" alt="" />￼</p>
+
+<p>找一块内存块进行dump：</p>
+
+<pre><code>gdb --batch --pid 11 -ex &quot;dump memory a.dump 0x7fd488000000 0x7fd488000000+56124000&quot;
+</code></pre>
+
+<p>简单分析一下内容，发现绝大部分是乱码的二进制内容，看不出什么问题。<br />
+strings a.dump | less<br />
+或者： hexdump -C a.dump | less<br />
+或者： view a.dump</p>
+
+<p>没啥思路的时候，随便搜了一下发现貌似很多人碰到这种64M内存块的问题(<a href="https://yq.aliyun.com/articles/227924">比如这里</a>)，了解到glibc的内存分配策略在高版本有较大调整：</p>
+
+<p>&laquo;从glibc 2.11（为应用系统在多核心CPU和多Sockets环境中高伸缩性提供了一个动态内存分配的特性增强）版本开始引入了per thread arena内存池，Native Heap区被打散为sub-pools ，这部分内存池叫做Arena内存池。也就是说，以前只有一个main arena，目前是一个main arena（还是位于Native Heap区） + 多个per thread arena，多个线程之间不再共用一个arena内存区域了，保证每个线程都有一个堆，这样避免内存分配时需要额外的锁来降低性能。main arena主要通过brk/sbrk系统调用去管理，per thread arena主要通过mmap系统调用去分配和管理。&raquo;</p>
+
+<p><em><font color=red>&laquo;一个32位的应用程序进程，最大可创建 2 CPU总核数个arena内存池（MALLOC_ARENA_MAX），每个arena内存池大小为1MB，一个64位的应用程序进程，最大可创建 8 CPU总核数个arena内存池（MALLOC_ARENA_MAX），每个arena内存池大小为64MB&raquo;</font></em></p>
+
+<h5 id="ptmalloc2内存分配和释放">ptmalloc2内存分配和释放</h5>
+
+<p>&laquo;当某一线程需要调用 malloc()分配内存空间时， 该线程先查看线程私有变量中是否已经存在一个分配区，如果存在， 尝试对该分配区加锁，如果加锁成功，使用该分配区分配内存，如果失败， 该线程搜索循环链表试图获得一个没有加锁的分配区。如果所有的分配区都已经加锁，那么 malloc()会开辟一个新的分配区，把该分配区加入到全局分配区循环链表并加锁，然后使用该分配区进行分配内存操作。在释放操作中，线程同样试图获得待释放内存块所在分配区的锁，如果该分配区正在被别的线程使用，则需要等待直到其他线程释放该分配区的互斥锁之后才可以进行释放操作。<font color=red>用户 free 掉的内存并不是都会马上归还给系统，ptmalloc2 会统一管理 heap 和 mmap 映射区域中的空闲的chunk，当用户进行下一次分配请求时， ptmalloc2 会首先试图在空闲的chunk 中挑选一块给用户，这样就避免了频繁的系统调用，降低了内存分配的开销</font>。&raquo;</p>
+
+<h5 id="ptmalloc2的内存收缩机制">ptmalloc2的内存收缩机制</h5>
+
+<p>&laquo;业务层调用free方法释放内存时，ptmalloc2先判断 top chunk 的大小是否大于 mmap 收缩阈值(默认为 128KB)，如果是的话，对于主分配区，则会试图归还 top chunk 中的一部分给操作系统。但是最先分配的 128KB 空间是不会归还的，ptmalloc 会一直管理这部分内存，用于响应用户的分配 请求;如果为非主分配区，会进行 sub-heap 收缩，将 top chunk 的一部分返回给操 作系统，如果 top chunk 为整个 sub-heap，会把整个 sub-heap 还回给操作系统。做 完这一步之后，释放结束，从 free() 函数退出。可以看出，收缩堆的条件是当前 free 的 chunk 大小加上前后能合并 chunk 的大小大于 64k，并且要 top chunk 的大 小要达到 mmap 收缩阈值，才有可能收缩堆。&raquo;</p>
+
+<h5 id="ptmalloc2的mmap分配阈值动态调整">ptmalloc2的mmap分配阈值动态调整</h5>
+
+<p>&laquo;M_MMAP_THRESHOLD 用于设置 mmap 分配阈值，默认值为 128KB，ptmalloc 默认开启 动态调整 mmap 分配阈值和 mmap 收缩阈值。当用户需要分配的内存大于 mmap 分配阈值，ptmalloc 的 malloc()函数其实相当于 mmap() 的简单封装，free 函数相当于 munmap()的简单封装。相当于直接通过系统调用分配内存， 回收的内存就直接返回给操作系统了。因为这些大块内存不能被 ptmalloc 缓存管理，不能重用，所以 ptmalloc 也只有在万不得已的情况下才使用该方式分配内存。&raquo;</p>
+
+<h5 id="业务特性和ptmalloc2内存分配的gap">业务特性和ptmalloc2内存分配的gap</h5>
+
+<p>当前业务并发较大，线程较多，内存申请时容易造成锁冲突申请多个arena，另外该服务涉及到图片的上传和处理，底层会比较频繁的通过JNI调用ImageIO的图片读取方法（com_sun_imageio_plugins_jpeg_JPEGImageReader_readImage），经常会向glibc申请10M以上的buffer内存，考虑到ptmalloc2的lazy回收机制和mmap分配阈值动态调整默认打开，对于这些申请的大内存块，使用完后仍然会停留在arena中不会归还，同时也比较难得到收缩的机会去释放（当前回收的chunk和top chunk相邻，且合并后大于64K）。因此在这种较高并发的多线程业务场景下，RES的增长也是不可避免。</p>
+
+<h5 id="如何优化解决">如何优化解决</h5>
+
+<h5 id="三种方案">三种方案：</h5>
+
+<p><strong>第一种：</strong>控制分配区的总数上限。默认64位系统分配区数为：cpu核数*8，如当前环境16核系统分配区数为128个，每个64M上限的话最多可达8G，限制上限后，后续不够的申请会直接走mmap分配和munmap回收，不会进入ptmalloc2的buffer池。<br />
+所以第一种方案调整一下分配池上限个数到4：</p>
+
+<pre><code>export MALLOC_ARENA_MAX=4
+</code></pre>
+
+<p><strong>第二种：</strong>之前降到ptmalloc2默认会动态调整mmap分配阈值，因此对于较大的内存请求也会进入ptmalloc2的内存buffer池里，这里可以去掉ptmalloc的动态调整功能。可以设置 M_TRIM_THRESHOLD，M_MMAP_THRESHOLD，M_TOP_PAD 和 M_MMAP_MAX 中的任意一个。这里可以固定分配阈值为128K，这样超过128K的内存分配请求都不会进入ptmalloc的buffer池而是直接走mmap分配和munmap回收（性能上会有损耗，当前环境大概10%）。：</p>
+
+<pre><code>export MALLOC_MMAP_THRESHOLD_=131072
+export MALLOC_TRIM_THRESHOLD_=131072
+export MALLOC_TOP_PAD_=131072
+export MALLOC_MMAP_MAX_=65536   
+</code></pre>
+
+<p><strong>第三种：</strong>使用tcmalloc来替代默认的ptmalloc2。google的tcmalloc提供更优的内存分配效率，性能更好，ThreadCache会阶段性的回收内存到CentralCache里。 解决了ptmalloc2中arena之间不能迁移导致内存浪费的问题。</p>
+
+<h5 id="tcmalloc安装使用">tcmalloc安装使用</h5>
+
+<h6 id="1-实现原理">1.实现原理</h6>
+
+<p>perf-tools实现原理是：在java应用程序运行时，当系统分配内存时调用malloc时换用它的libtcmalloc.so，也就是TCMalloc会自动替换掉glibc默认的malloc和free，这样就能做一些统计。使用TCMalloc（Thread-Caching Malloc）与标准的glibc库的malloc相比，TCMalloc在内存的分配上效率和速度要高，<a href="http://shiningray.cn/tcmalloc-thread-caching-malloc.html">==了解更多TCMalloc</a></p>
+
+<h6 id="2-安装和使用">2. 安装和使用</h6>
+
+<h6 id="2-1-前置工具的安装">2.1 前置工具的安装</h6>
+
+<pre><code>yum -y install gcc make
+yum -y install gcc gcc-c++
+yum -y perl
+</code></pre>
+
+<h6 id="2-2-libunwind">2.2 libunwind</h6>
+
+<p>使用perf-tools的TCMalloc，在64bit系统上需要先安装libunwind（<a href="http://download.savannah.gnu.org/releases/libunwind/libunwind-1.2.tar.gz，只能是这个版本），这个库为基于64位CPU和操作系统的程序提供了基本的堆栈辗转开解功能，其中包括用于输出堆栈跟踪的API、用于以编程方式辗转开解堆栈的API以及支持C++异常处理机制的API，32bit系统不需安装。">http://download.savannah.gnu.org/releases/libunwind/libunwind-1.2.tar.gz，只能是这个版本），这个库为基于64位CPU和操作系统的程序提供了基本的堆栈辗转开解功能，其中包括用于输出堆栈跟踪的API、用于以编程方式辗转开解堆栈的API以及支持C++异常处理机制的API，32bit系统不需安装。</a></p>
+
+<pre><code>tar zxvf libunwind-1.2.tar.gz
+./configure
+make
+make install
+make clean
+</code></pre>
+
+<h6 id="2-3-perf-tools">2.3 perf-tools</h6>
+
+<p>从<a href="https://github.com/gperftools/gperftools下载相应的google-perftools版本。">https://github.com/gperftools/gperftools下载相应的google-perftools版本。</a></p>
+
+<pre><code>tar zxvf google-perftools-2.7.tar.gz
+./configure
+make
+make install
+make clean
+#修改lc_config,加入/usr/local/lib(libunwind的lib所在目录)
+echo &quot;/usr/local/lib&quot; &gt; /etc/ld.so.conf.d/usr_local_lib.conf 
+#使libunwind生效
+ldconfig
+</code></pre>
+
+<h6 id="2-3-1-关于etc-ld-so-conf">2.3.1 关于etc/ld.so.conf</h6>
+
+<p>这个文件记录了编译时使用的动态链接库的路径。默认情况下，编译器只会使用/lib和/usr/lib这两个目录下的库文件。<br />
+如果你安装了某些库，比如在安装gtk+-2.4.13时它会需要glib-2.0 &gt;= 2.4.0,辛苦的安装好glib后没有指定 &ndash;prefix=/usr 这样glib库就装到了/usr/local下，而又没有在/etc/ld.so.conf中添加/usr/local/lib。<br />
+库文件的路径如 /usr/lib 或 /usr/local/lib 应该在 /etc/ld.so.conf 文件中，这样 ldd 才能找到这个库。在检查了这一点后，要以 root 的身份运行 /sbin/ldconfig。<br />
+将/usr/local/lib加入到/etc/ld.so.conf中，这样安装gtk时就会去搜索/usr/local/lib,同样可以找到需要的库</p>
+
+<h6 id="2-3-2-关于ldconfig">2.3.2 关于ldconfig</h6>
+
+<p>ldconfig的作用就是将/etc/ld.so.conf列出的路径下的库文件 缓存到/etc/ld.so.cache 以供使用<br />
+因此当安装完一些库文件，(例如刚安装好glib)，或者修改ld.so.conf增加新的库路径后，需要运行一下/sbin/ldconfig<br />
+使所有的库文件都被缓存到ld.so.cache中，如果没做，即使库文件明明就在/usr/lib下的，也是不会被使用的</p>
+
+<h6 id="2-4-为perf-tools添加线程目录">2.4 为perf-tools添加线程目录</h6>
+
+<pre><code>mkdir /data1/weibo/logs/gperftools/tcmalloc/heap
+chmod 0777 /data1/weibo/logs/gperftools/tcmalloc/heap
+</code></pre>
+
+<h6 id="2-5-修改tomcat启动脚本">2.5 修改tomcat启动脚本</h6>
+
+<p>catalina.sh里添加：</p>
+
+<pre><code>ldconfig
+export LD_PRELOAD=/usr/local/lib/libtcmalloc.so
+export HEAPPROFILE=/data1/weibo/logs/gperftools/tcmalloc/heap
+</code></pre>
+
+<p>修改后重启tomcat的容器。</p>
+
+<h6 id="2-5-1-关于ld-preload">2.5.1 关于LD_PRELOAD</h6>
+
+<p>LD_PRELOAD是Linux系统的一个环境变量，它可以影响程序的运行时的链接（Runtime linker），它允许你定义在程序运行前优先加载的动态链接库。这个功能主要就是用来有选择性的载入不同动态链接库中的相同函数。通过这个环境变量，我们可以在主程序和其动态链接库的中间加载别的动态链接库，甚至覆盖正常的函数库。一方面，我们可以以此功能来使用自己的或是更好的函数（无需别人的源码），而另一方面，我们也可以以向别人的程序注入程序，从而达到特定的目的。<a href="http://www.cnblogs.com/net66/p/5609026.html">更多关于LD_PRELOAD</a></p>
+
+<p><strong><font color=red>经验证上面三种方式都能有效解决常驻内存持续增长的问题。</font></strong></p>
+
+<p>参考：<br />
+<a href="http://www.infoq.com/cn/articles/Java-PERMGEN-Removed">http://www.infoq.com/cn/articles/Java-PERMGEN-Removed</a><br />
+<a href="https://docs.oracle.com/javase/specs/jvms/se8/html/index.html">https://docs.oracle.com/javase/specs/jvms/se8/html/index.html</a><br />
+<a href="https://docs.oracle.com/javase/8/docs/technotes/guides/vm/nmt-8.html">https://docs.oracle.com/javase/8/docs/technotes/guides/vm/nmt-8.html</a><br />
+<a href="https://docs.oracle.com/javase/8/docs/technotes/guides/troubleshoot/tooldescr022.html#BABCBGFA">https://docs.oracle.com/javase/8/docs/technotes/guides/troubleshoot/tooldescr022.html#BABCBGFA</a><br />
+<a href="http://zhanjindong.com/2016/03/02/jvm-memory-tunning-notes">http://zhanjindong.com/2016/03/02/jvm-memory-tunning-notes</a><br />
+<a href="http://www.cnblogs.com/duanxz/archive/2012/08/09/2630284.html">http://www.cnblogs.com/duanxz/archive/2012/08/09/2630284.html</a><br />
+<a href="https://stackoverflow.com/questions/31173374/why-does-a-jvm-report-more-committed-memory-than-the-linux-process-resident-set">https://stackoverflow.com/questions/31173374/why-does-a-jvm-report-more-committed-memory-than-the-linux-process-resident-set</a><br />
+<a href="https://siddhesh.in/posts/malloc-per-thread-arenas-in-glibc.html">https://siddhesh.in/posts/malloc-per-thread-arenas-in-glibc.html</a><br />
+<a href="https://www.sourceware.org/systemtap/SystemTap_Beginners_Guide/using-systemtap.html">https://www.sourceware.org/systemtap/SystemTap_Beginners_Guide/using-systemtap.html</a><br />
+<a href="http://debuginfo.centos.org/7/x86_64/">http://debuginfo.centos.org/7/x86_64/</a></p>
+</div>
+
+  <footer class="article-footer">
+    
+    
+    
+    <section class="bordered">
+      <header>
+        <div class="panel-title">CATEGORIES</div>
+      </header>
+      <div>
+        <ul class="p-terms">
+          
+          <li><a href="https://coldwalker.com/categories/%E6%8A%80%E6%9C%AF/">技术</a></li>
+          
+        </ul>
+      </div>
+    </section>
+    
+    
+    
+    <section class="bordered">
+      <header>
+        <div class="panel-title">TAGS</div>
+      </header>
+      <div>
+        <ul class="p-terms">
+          
+          <li><a href="https://coldwalker.com/tags/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/">问题排查</a></li>
+          
+          <li><a href="https://coldwalker.com/tags/java/">Java</a></li>
+          
+          <li><a href="https://coldwalker.com/tags/jvm/">JVM</a></li>
+          
+        </ul>
+      </div>
+    </section>
+    
+    
+  </footer>
+
+</article>
+
+    
+      
+      <div id="cyReward" role="cylabs" data-use="reward"></div>
+      <script src="//changyan.itc.cn/js/lib/jquery.js"></script>
+      <script src="//changyan.sohu.com/js/changyan.labs.https.js?appid=cytwFfxww"></script>
+      <div id="SOHUCS" sid="/2018/08//troubleshooter_native_memory_increase/" ></div>
+      <script>
+      (function(){
+      var appid = 'cytwFfxww';
+      var conf = 'prod_36cf3e358f9305067d10b0652031cb07';
+      var width = window.innerWidth || document.documentElement.clientWidth;
+      if (width < 960) {
+      window.document.write('<script id="changyan_mobile_js" charset="utf-8" type="text/javascript" src="https://changyan.sohu.com/upload/mobile/wap-js/changyan_mobile.js?client_id=' + appid + '&conf=' + conf + '"><\/script>'); } else { var loadJs=function(d,a){var c=document.getElementsByTagName("head")[0]||document.head||document.documentElement;var b=document.createElement("script");b.setAttribute("type","text/javascript");b.setAttribute("charset","UTF-8");b.setAttribute("src",d);if(typeof a==="function"){if(window.attachEvent){b.onreadystatechange=function(){var e=b.readyState;if(e==="loaded"||e==="complete"){b.onreadystatechange=null;a()}}}else{b.onload=a}}c.appendChild(b)};loadJs("https://changyan.sohu.com/upload/changyan.js",function(){window.changyan.api.config({appid:appid,conf:conf})}); } })(); </script>
+      
+    
+
+   
+  </div>
+
+  <div class="col-md-4">
+    
+<aside class="l-sidebar">
+
+  
+  
+  <section class="panel panel-default">
+    <div class="panel-heading">
+      
+      <div class="panel-title">CATEGORY</div>
+    </div>
+    <div class="list-group">
+      
+      <a href="https://coldwalker.com/categories/%E6%8A%80%E6%9C%AF" class="list-group-item">技术(4)</a>
+      
+      <a href="https://coldwalker.com/categories/%E6%84%9F%E6%82%9F" class="list-group-item">感悟(1)</a>
+      
+      <a href="https://coldwalker.com/categories/%E7%94%9F%E6%B4%BB" class="list-group-item">生活(1)</a>
+      
+    </div>
+  </section>
+  
+  <section class="panel panel-default">
+    <div class="panel-heading">
+      
+      <div class="panel-title">TAG</div>
+    </div>
+    <div class="list-group">
+      
+      <a href="https://coldwalker.com/tags/java" class="list-group-item">Java(4)</a>
+      
+      <a href="https://coldwalker.com/tags/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5" class="list-group-item">问题排查(3)</a>
+      
+      <a href="https://coldwalker.com/tags/jvm" class="list-group-item">Jvm(2)</a>
+      
+      <a href="https://coldwalker.com/tags/netflix" class="list-group-item">Netflix(1)</a>
+      
+      <a href="https://coldwalker.com/tags/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6" class="list-group-item">开源组件(1)</a>
+      
+      <a href="https://coldwalker.com/tags/%E6%9C%8D%E5%8A%A1%E7%A8%B3%E5%AE%9A%E6%80%A7" class="list-group-item">服务稳定性(1)</a>
+      
+    </div>
+  </section>
+  
+ 
+  
+  <section class="panel panel-default">
+    <div class="panel-heading">
+      <div class="panel-title">Archive</div>
+    </div>
+    
+      
+    <div class="list-group">
+      <a href="https://coldwalker.com/post/#2018-08" class="list-group-item">2018-08(1)</a>
+    
+      
+    <div class="list-group">
+      <a href="https://coldwalker.com/post/#2018-03" class="list-group-item">2018-03(4)</a>
+    
+    </div>
+  </section>
+  
+</aside>
+
+
+  </div>
+</div>
+
+      </div>
+    </main>
+
+    <footer class="l-footer">
+      <div class="container">
+        <p>© This post is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License，please give source if you wish to quote or reproduce.</p>
+        
+      </div>
+    </footer>
+
+    <script src="//code.jquery.com/jquery-3.1.1.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </body>
+</html>
+

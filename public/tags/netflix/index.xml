@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Netflix on 凛冬夜行</title>
+    <link>https://coldwalker.com/tags/netflix/</link>
+    <description>Recent content in Netflix on 凛冬夜行</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <copyright>© This post is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License，please give source if you wish to quote or reproduce.</copyright>
+    <lastBuildDate>Wed, 21 Mar 2018 15:43:14 +0800</lastBuildDate>
+    
+	<atom:link href="https://coldwalker.com/tags/netflix/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>服务稳定性提升之-熔断组件Hystrix</title>
+      <link>https://coldwalker.com/2018/03//robust-service_hystrix/</link>
+      <pubDate>Wed, 21 Mar 2018 15:43:14 +0800</pubDate>
+      
+      <guid>https://coldwalker.com/2018/03//robust-service_hystrix/</guid>
+      <description>&lt;p&gt;Hystrix是netflix公司开源的一个通用系统保护框架，提供服务对远程依赖的快速失败机制、requestCache支持、请求合并能力等。目前通讯这边已经大范围使用，并结合profile日志进行了一些简单的定制化，目前使用情况看，实用性和稳定性比较出色，接入成本也较低。有兴趣的组可以参考以下范例尝试接入使用。&lt;/p&gt;</description>
+    </item>
+    
+  </channel>
+</rss>

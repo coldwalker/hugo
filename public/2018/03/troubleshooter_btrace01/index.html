@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+<meta name="pinterest" content="nopin">
+<meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
+<meta name="generator" content="Hugo 0.38-DEV" />
+
+
+
+<link rel="canonical" href="https://coldwalker.com/2018/03//troubleshooter_btrace01/">
+
+
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/solarized_dark.min.css">
+    <link rel="stylesheet" href="https://coldwalker.com/css/search.css" />
+    <title>问题排查利器之-JVM动态追踪工具BTrace - 凛冬夜行</title>
+    
+<meta name="description" content="&lt;p&gt;很多时候怀疑线上运行的代码有问题但又苦于日志打的不够详细的时候，BTrace作为基于ASM实现的代码动态跟踪工具能很快排上用场，在不需要重启java进程的情况下，通过脚本动态切入到嫌疑代码块，快速定位问题。&lt;/p&gt;">
+
+<meta property="og:title" content="问题排查利器之-JVM动态追踪工具BTrace - 凛冬夜行">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://coldwalker.com/2018/03//troubleshooter_btrace01/">
+<meta property="og:image" content="https://coldwalker.com/images/xiaodongjiangchenwu.jpg">
+<meta property="og:site_name" content="凛冬夜行">
+<meta property="og:description" content="&lt;p&gt;很多时候怀疑线上运行的代码有问题但又苦于日志打的不够详细的时候，BTrace作为基于ASM实现的代码动态跟踪工具能很快排上用场，在不需要重启java进程的情况下，通过脚本动态切入到嫌疑代码块，快速定位问题。&lt;/p&gt;">
+<meta property="og:locale" content="ja_JP">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="凛冬夜行">
+<meta name="twitter:url" content="https://coldwalker.com/2018/03//troubleshooter_btrace01/">
+<meta name="twitter:title" content="问题排查利器之-JVM动态追踪工具BTrace - 凛冬夜行">
+<meta name="twitter:description" content="&lt;p&gt;很多时候怀疑线上运行的代码有问题但又苦于日志打的不够详细的时候，BTrace作为基于ASM实现的代码动态跟踪工具能很快排上用场，在不需要重启java进程的情况下，通过脚本动态切入到嫌疑代码块，快速定位问题。&lt;/p&gt;">
+<meta name="twitter:image" content="https://coldwalker.com/images/xiaodongjiangchenwu.jpg">
+
+
+<script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "NewsArticle",
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id":"https://coldwalker.com/"
+    },
+    "headline": "问题排查利器之-JVM动态追踪工具BTrace - 凛冬夜行",
+    "image": {
+      "@type": "ImageObject",
+      "url": "https://coldwalker.com/images/xiaodongjiangchenwu.jpg",
+      "height": 800,
+      "width": 800
+    },
+    "datePublished": "2018-03-20T14:18:25JST",
+    "dateModified": "2018-03-20T14:18:25JST",
+    "author": {
+      "@type": "Person",
+      "name": "凛冬夜行"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "凛冬夜行",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://coldwalker.com/images/logo.png",
+        "width": 600,
+        "height": 60
+      }
+    },
+    "description": "<p>很多时候怀疑线上运行的代码有问题但又苦于日志打的不够详细的时候，BTrace作为基于ASM实现的代码动态跟踪工具能很快排上用场，在不需要重启java进程的情况下，通过脚本动态切入到嫌疑代码块，快速定位问题。</p>"
+  }
+</script>
+
+
+    <link href="https://coldwalker.com/css/styles.css" rel="stylesheet">
+    
+
+  </head>
+
+  <body>
+    
+        
+            
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-116113253-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+        
+        
+            <script>
+            var _hmt = _hmt || [];
+            (function() {
+              var hm = document.createElement("script");
+              hm.src = "https://hm.baidu.com/hm.js?f13b34958e759c7a5400b5cdf455f21c";
+              var s = document.getElementsByTagName("script")[0];
+              s.parentNode.insertBefore(hm, s);
+            })();
+            </script>
+        
+   
+    
+
+    <header class="l-header">
+      <nav class="navbar navbar-default">
+        <div class="container">
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
+              <span class="sr-only">Toggle navigation</span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="https://coldwalker.com/">凛冬夜行</a>
+          </div>
+
+          
+          <div id="navbar" class="collapse navbar-collapse">
+            
+            <ul class="nav navbar-nav navbar-right">
+              
+              
+              <li><a href="https://coldwalker.com/2018/03/about/">about Me</a></li>
+              
+              
+              
+              <li>
+                  <a href="#modalSearch" data-toggle="modal" data-target="#modalSearch" style="outline: none;">
+                    <span class="hidden-sm hidden-md hidden-lg"></span> <span id="searchGlyph" class="glyphicon glyphicon-search"></span>
+                  </a>
+             </li>
+                
+            </ul>
+            
+          </div>
+          
+
+        </div>
+    
+         <div id="modalSearch" class="modal fade" role="dialog">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal">&times;</button>
+                  <h4 class="modal-title">Search coldwalker.com</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="aa-input-container" id="aa-input-container">
+    <input type="search" id="aa-search-input" class="aa-input-search" placeholder="Search for titles or URIs..." name="search" autocomplete="off" />
+    <svg class="aa-input-icon" viewBox="654 -372 1664 1664">
+        <path d="M1806,332c0-123.3-43.8-228.8-131.5-316.5C1586.8-72.2,1481.3-116,1358-116s-228.8,43.8-316.5,131.5  C953.8,103.2,910,208.7,910,332s43.8,228.8,131.5,316.5C1129.2,736.2,1234.7,780,1358,780s228.8-43.8,316.5-131.5  C1762.2,560.8,1806,455.3,1806,332z M2318,1164c0,34.7-12.7,64.7-38,90s-55.3,38-90,38c-36,0-66-12.7-90-38l-343-342  c-119.3,82.7-252.3,124-399,124c-95.3,0-186.5-18.5-273.5-55.5s-162-87-225-150s-113-138-150-225S654,427.3,654,332  s18.5-186.5,55.5-273.5s87-162,150-225s138-113,225-150S1262.7-372,1358-372s186.5,18.5,273.5,55.5s162,87,225,150s113,138,150,225  S2062,236.7,2062,332c0,146.7-41.3,279.7-124,399l343,343C2305.7,1098.7,2318,1128.7,2318,1164z" />
+    </svg>
+</div>
+<script src="https://res.cloudinary.com/jimmysong/raw/upload/rootsongjc-hugo/algoliasearch.min.js"></script>
+<script src="https://res.cloudinary.com/jimmysong/raw/upload/rootsongjc-hugo/autocomplete.min.js"></script>
+<script>
+var client = algoliasearch("YP0YEWOT73", "546beefe9023181eb1827f484030b66b");
+var index = client.initIndex('coldwalker-blog');
+autocomplete('#aa-search-input',
+{ hint: false}, {
+    source: autocomplete.sources.hits(index, {hitsPerPage: 8}),
+    displayKey: 'name',
+    templates: {
+        suggestion: function(suggestion) {
+            console.log(suggestion);
+            var postDate = new Date(suggestion.date);
+            var postYear = postDate.getFullYear();
+            var postMonth = postDate.getMonth() + 1;
+            if(postMonth < 10)
+            postMonth = "0" + postMonth;
+            var title = suggestion.objectID.split("/", 2)[1];            
+            return '<span>' + '<a href="https://coldwalker.com/' + postYear + "/" + postMonth + "/" + title + '">' +
+            suggestion._highlightResult.title.value + '</a></span>';
+        }
+    }
+});
+</script>
+
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal">close</button>
+                </div>
+              </div>
+            </div>
+        </div>
+
+      </nav>
+    </header>
+
+    <main>
+      <div class="container">
+        
+<div class="row">
+  <div class="col-md-8">
+
+    <nav class="p-crumb">
+      <ol class="breadcrumb">
+        <li><a href="https://coldwalker.com/"><i class="fa fa-home" aria-hidden="true"></i></a></li>
+        
+        <li itemscope="" itemtype="http://data-vocabulary.org/Breadcrumb"><a href="https://coldwalker.com/post/" itemprop="url"><span itemprop="title">post</span></a></li>
+        
+        <li class="active">问题排查利器之-JVM动态追踪工具BTrace</li>
+      </ol>
+    </nav>
+
+    <article class="single">
+  <header>
+    <ul class="p-facts">
+      <li><i class="fa fa-calendar" aria-hidden="true"></i><time datetime="2018-03-20T14:18:25JST">2018-03-20</time></li>
+      <li><i class="fa fa-bookmark" aria-hidden="true"></i><a href="https://coldwalker.com/post/">post</a></li>
+      
+    </ul>
+
+    <h1 class="title">问题排查利器之-JVM动态追踪工具BTrace</h1>
+  </header>
+
+  <div class="thumb" style="background-image: url(https://coldwalker.com/images/xiaodongjiangchenwu.jpg);"></div>
+
+  <div class="article-body"><p>很多时候怀疑线上运行的代码有问题但又苦于日志打的不够详细的时候，BTrace作为基于ASM实现的代码动态跟踪工具能很快排上用场，在不需要重启java进程的情况下，通过脚本动态切入到嫌疑代码块，快速定位问题。</p>
+
+<h4 id="实现原理">实现原理：</h4>
+
+<p>Attach API + BTrace脚本解析引擎 + ASM + JDK Instumentation。</p>
+
+<h4 id="使用btrace的典型场景">使用BTrace的典型场景：</h4>
+
+<ol>
+<li>没打日志，想知道我这个方法的调用参数和返回结果？<br /></li>
+<li>某个方法变慢，想知道该接口方法调用的耗时或者该方法内调用的多个子方法的耗时？<br /></li>
+<li>某个方法抛异常时的传入参数？<br /></li>
+<li>谁调用了某个方法，具体调用链？<br />
+<br /></li>
+</ol>
+
+<h4 id="btrace下载地址">BTrace下载地址：</h4>
+
+<p><a href="http://github.com/btraceio/btrace">http://github.com/btraceio/btrace</a> 可以直接下载它的release包，开箱即用。</p>
+
+<h4 id="btrace简单用法">BTrace简单用法：</h4>
+
+<pre><code>sh ../bin/btrace -u java进程ID XXX.java
+</code></pre>
+
+<p>如果要把输出结果写到文件，可以：</p>
+
+<pre><code>sh ../bin/btrace -u -o btrace.log java进程ID XXX.java
+</code></pre>
+
+<p>-o 这个参数会把文件输出到被trace的java进程的启动目录，而不是当前目录。而且更坑的是：执行过一次-o之后，再执行btrace不加-o 也不会再输出回console，直到应用重启。所以还不如直接重定向到文件：</p>
+
+<pre><code>sh ../bin/btrace -u java进程ID XXX.java &gt; btrace.log
+</code></pre>
+
+<p>如果脚本里使用到了jdk外的类，需要通过classpath传入依赖，注意这里的cp只是供BTrace编译时使用，真正运行的时候由于已经Attach到JVM里，所以用的是目标JVM的classpath：</p>
+
+<pre><code>sh ../bin/btrace -u -o btrace.log -cp .:guava-18.0.jar java进程ID XXX.java
+</code></pre>
+
+<h4 id="知识点-拦截时机">知识点-拦截时机：</h4>
+
+<p>Btrace里拦截时机以下几种，通过Location关键字来定义：具体是：<br />
+Kind.Entry：默认是Entry，就是方法刚进入时拦截。<br />
+Kind.Return：如果想获得函数的返回结果或执行时间，需要定义为：Kind.Return<br />
+Kind.CALL：分析方法中调用其它方法的执行情况，有类似分布耗时的功效<br />
+Kind.LINE：设置line，监控代码是否执行到指定行的位置<br />
+Kind.Throw：异常抛出时拦截。<br />
+Kind.Catch：异常被捕获时拦截。<br />
+Kind.Error:异常没被捕获被抛出方法外时拦截。<br />
+在拦截函数的参数定义里注入一个Throwable的参数，代表异常。<br />
+public static void onBind(Throwable exception, @Duration long duration)</p>
+
+<h4 id="知识点-预编译">知识点-预编译：</h4>
+
+<p>BTrace可以实时编译.java的脚本文件，但可以通过btacec预编译来避免执行时才发现有问题。</p>
+
+<pre><code>sh ../bin/btracec XXX.java
+</code></pre>
+
+<h4 id="特别注意">特别注意：</h4>
+
+<p>BTrace为了安全考虑，trace脚本诸多限制，比如：<br />
+1. 不允许调用任何类的任何方法。只能调用BTraceUtils 里的工具方法和脚本里定义的static方法<br />
+2. 不允许创建对象<br />
+3. 不允许for循环</p>
+
+<p>除非在脚本注解里使用 @BTrace(unsafe=true)，同时运行时使用 -u 参数 来规避限制。</p>
+
+<h4 id="font-color-green-示例-查看某个方法的调用耗时-font"><font color=green>示例：查看某个方法的调用耗时：</font></h4>
+
+<p>注意：这里的Duration是纳秒，需要转换一下比较好看。另外，可以用fqn参数打印出方法全路径名。</p>
+
+<pre><code>import com.sun.btrace.annotations.*;
+import static com.sun.btrace.BTraceUtils.*;
+
+@BTrace(unsafe=true)
+public class GetImageCost {
+    @OnMethod(clazz=&quot;cn.sina.as.service.impl.AttachStorageServiceImpl&quot;, method=&quot;getAttachStorageFromNormal&quot;, location = @Location(Kind.RETURN))
+    public static void printGetImageTime(@ProbeClassName String probeClass, @ProbeMethodName(fqn = true) String probeMethod,  @Duration long duration) {
+        println(&quot;=======ProbeClass:&quot; + probeClass +  &quot;,probeMethod:&quot; + probeMethod + &quot;,duration:&quot; + (duration / 100000) + &quot;ms&quot;);
+    }
+}
+</code></pre>
+
+<h4 id="font-color-green-示例-获取某个方法里所有调用子方法里耗时大于100ms的-font"><font color=green>示例：获取某个方法里所有调用子方法里耗时大于100ms的：</font></h4>
+
+<pre><code>import com.sun.btrace.annotations.*;
+import static com.sun.btrace.BTraceUtils.*;
+
+@BTrace
+public class PrintGenerateThumbPicCost {
+    @OnMethod(clazz=&quot;cn.sina.as.service.impl.AttachStorageServiceImpl&quot;, method=&quot;getImage&quot;,location = @Location(value = Kind.CALL, clazz = &quot;/.*/&quot;, method = &quot;/.*/&quot;, where = Where.AFTER))
+    public static void printCompressedImageTime(@Self Object self, @TargetInstance Object instance, @TargetMethodOrField(fqn = true) String method,  @Duration long duration) {
+    if (duration &gt; 100*100000) {
+        println(&quot;=======invoke method:&quot; + method + &quot;,duration:&quot; + (duration /100000) + &quot;ms&quot;);
+        }
+    }
+}
+</code></pre>
+
+<h4 id="font-color-green-示例-获取某个方法执行时的线程栈-font"><font color=green>示例：获取某个方法执行时的线程栈：</font></h4>
+
+<pre><code>import com.sun.btrace.annotations.*;
+import static com.sun.btrace.BTraceUtils.*;
+
+@BTrace
+public class PrintThreadStack {
+    @OnMethod(clazz=&quot;cn.sina.as.service.impl.AttachStorageServiceImpl&quot;, method=&quot;getImage&quot;)
+    public static void printThreadStack() {
+        println(&quot;thread dump where getImage invoked!&quot;);
+        jstack();
+    }
+}
+</code></pre>
+
+<h4 id="font-color-green-示例-获取某个方法的入参和返回-font"><font color=green>示例：获取某个方法的入参和返回</font></h4>
+
+<p>sh ../bin/btrace -u -cp .:attachment-common-1.1.16.jar 9 PrintParamAndReturn.java<br />
+当前对象的引用，参数列表，返回值，这3个是按顺序定义用@Self 注释的this， 完整的参数列表，以及用@Return 注释的返回值。</p>
+
+<pre><code>import com.sun.btrace.annotations.*;
+import static com.sun.btrace.BTraceUtils.*;
+import java.lang.reflect.Field;
+import cn.sina.as.constant.ImageType;
+import cn.sina.as.model.AttachStorage;
+import com.sun.btrace.AnyType;
+import cn.sina.as.model.AuthUser;
+import cn.sina.as.model.DownloadContext;
+
+@BTrace(unsafe=true)
+public class PrintParamAndReturn {
+
+    @OnMethod(clazz=&quot;cn.sina.as.service.impl.AttachStorageServiceImpl&quot;, method=&quot;getAttachStorageFromNormal&quot;, location = @Location(Kind.RETURN))
+    public static void printParamAndReturn(@Self Object self, long fid, ImageType imageType, AuthUser user, DownloadContext context,  @Return AnyType result) {
+        println(&quot;method params: &quot; + fid);
+        println(&quot;method params: &quot; + user.getUid());
+        printFields(result);
+        println(&quot;method return: &quot; + str(get(field(&quot;cn.sina.as.model.AttachStorage&quot;, &quot;filename&quot;), result)));
+    }
+}
+</code></pre>
+
+<p>注意：参数列表要么都不要，要么都不能缺，否则会进入静默状态。<br />
+另外，某些场景下，我们只需要追踪某一两个简单的参数，不需要其他非JDK类型的参数，这是可以使用AnyType来定义非JDK类型的参数，从而不需要引入其他第三方依赖。（另外，不同参数的多个同名方法可以用AnyType[] 数组来匹配和打印出具体参数值，不过不知道哪里有问题没调通。)<br />
+sh ../bin/btrace 9 PrintParamAndReturn.java</p>
+
+<pre><code>import com.sun.btrace.annotations.*;
+import static com.sun.btrace.BTraceUtils.*;
+import java.lang.reflect.Field;
+import com.sun.btrace.AnyType;
+
+@BTrace
+public class PrintParamAndReturn {
+
+    @OnMethod(clazz=&quot;cn.sina.as.service.impl.AttachStorageServiceImpl&quot;, method=&quot;getAttachStorageFromNormal&quot;, location = @Location(Kind.RETURN))
+    public static void printParamAndReturn(@Self Object self, long fid, AnyType imageType, AnyType authUser, AnyType downloadContext,  @Return AnyType result) {
+        println(&quot;method params: &quot; + fid);
+        printFields(result);
+    }
+}
+</code></pre>
+
+<h4 id="font-color-green-示例-每10s打印一次某个方法被调用的总次数和慢查询次数-font"><font color=green>示例：每10s打印一次某个方法被调用的总次数和慢查询次数。</font></h4>
+
+<p>使用@OnTimer来定时触发，结合一些工具类。sh ../bin/btrace 9 PrintPerfCount.java</p>
+
+<pre><code>import com.sun.btrace.annotations.*;
+import static com.sun.btrace.BTraceUtils.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Map;
+
+@BTrace
+public class PrintPerfCount {
+
+    private static Map&lt;String, AtomicInteger&gt; histo = newHashMap();
+
+    @OnMethod(clazz=&quot;cn.sina.as.service.impl.AttachStorageServiceImpl&quot;, method=&quot;getAttachStorageFromNormal&quot;, location = @Location(Kind.RETURN))
+    public static void printInvokeCount(@ProbeClassName String probeClass, @ProbeMethodName(fqn = true) String probeMethod,  @Duration long duration) {
+        if((duration / 100000) &gt; 1000) {
+            AtomicInteger slowCount = get(histo, &quot;slowCount&quot;);
+            if (slowCount == null) {
+                slowCount = newAtomicInteger(1);
+                put(histo, &quot;slowCount&quot;, slowCount);
+            } else {
+                incrementAndGet(slowCount);
+            }
+        }
+
+        AtomicInteger totalCount = get(histo, &quot;totalCount&quot;);
+        if (totalCount == null) {
+            totalCount = newAtomicInteger(1);
+            put(histo, &quot;totalCount&quot;, totalCount);
+        } else {
+            incrementAndGet(totalCount);
+        }
+    }
+
+    @OnTimer(1000 * 10)
+    public static void count() {
+        if (Collections.size(histo) != 0) {
+           printNumberMap(&quot;Invoke TotalCount And SlowCount:&quot;, histo);
+        }
+    }
+}
+</code></pre>
+
+<h4 id="其他用法">其他用法：</h4>
+
+<p>按接口，父类，Annotation定位：<br />
+比如我想匹配所有的Filter类，在接口或基类的名称前面，加个+ 就行<br />
+@OnMethod(clazz=&laquo;+com.vip.demo.Filter&raquo;, method=&laquo;doFilter&raquo;)</p>
+
+<h4 id="其他用法-1">其他用法：</h4>
+
+<p>也可以按类或方法上的annotaiton匹配，前面加上@就行<br />
+@OnMethod(clazz=&laquo;@javax.jws.WebService&raquo;, method=&laquo;@javax.jws.WebMethod&raquo;)</p>
+
+<h4 id="其他用法-2">其他用法：</h4>
+
+<p>拦截构造函数，构造函数的名字是 <init><br />
+@OnMethod(clazz=&laquo;java.net.ServerSocket&raquo;, method=&raquo;<init>&raquo;)</p>
+
+<h4 id="其他用法-3">其他用法：</h4>
+
+<p>拦截静态内部类的写法，是在类与内部类之间加上&raquo;$&laquo;，​静态函数中，instance的值为空。如果想获得执行时间，必须把Where定义成AFTER。如果想获得执行时间，必须 把Where定义成AFTER。<br />
+@OnMethod(clazz=&laquo;com.vip.MyServer$MyInnerClass&raquo;, method=&laquo;hello&raquo;)</p>
+
+<hr />
+
+<p><font color=gray>参考：<br />
+白衣大大的详细介绍：<a href="http://calvin1978.blogcn.com/articles/btrace1.html">http://calvin1978.blogcn.com/articles/btrace1.html</a><br />
+Instrumentation介绍： <a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse61/">http://www.ibm.com/developerworks/cn/java/j-lo-jse61/</a><br />
+BTrace使用小结：<a href="https://lfckop.github.io/btrace/">https://lfckop.github.io/btrace/</a><br />
+阿里出品的类似工具greys-anatomy：<a href="https://github.com/oldmanpushcart/greys-anatomy">https://github.com/oldmanpushcart/greys-anatomy</a><br />
+</font></p></div>
+
+  <footer class="article-footer">
+    
+    
+    
+    <section class="bordered">
+      <header>
+        <div class="panel-title">CATEGORIES</div>
+      </header>
+      <div>
+        <ul class="p-terms">
+          
+          <li><a href="https://coldwalker.com/categories/%E6%8A%80%E6%9C%AF/">技术</a></li>
+          
+        </ul>
+      </div>
+    </section>
+    
+    
+    
+    <section class="bordered">
+      <header>
+        <div class="panel-title">TAGS</div>
+      </header>
+      <div>
+        <ul class="p-terms">
+          
+          <li><a href="https://coldwalker.com/tags/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/">问题排查</a></li>
+          
+          <li><a href="https://coldwalker.com/tags/java/">Java</a></li>
+          
+        </ul>
+      </div>
+    </section>
+    
+    
+  </footer>
+
+</article>
+
+    
+      
+      <div id="cyReward" role="cylabs" data-use="reward"></div>
+      <script src="//changyan.itc.cn/js/lib/jquery.js"></script>
+      <script src="//changyan.sohu.com/js/changyan.labs.https.js?appid=cytwFfxww"></script>
+      <div id="SOHUCS" sid="/2018/03//troubleshooter_btrace01/" ></div>
+      <script>
+      (function(){
+      var appid = 'cytwFfxww';
+      var conf = 'prod_36cf3e358f9305067d10b0652031cb07';
+      var width = window.innerWidth || document.documentElement.clientWidth;
+      if (width < 960) {
+      window.document.write('<script id="changyan_mobile_js" charset="utf-8" type="text/javascript" src="https://changyan.sohu.com/upload/mobile/wap-js/changyan_mobile.js?client_id=' + appid + '&conf=' + conf + '"><\/script>'); } else { var loadJs=function(d,a){var c=document.getElementsByTagName("head")[0]||document.head||document.documentElement;var b=document.createElement("script");b.setAttribute("type","text/javascript");b.setAttribute("charset","UTF-8");b.setAttribute("src",d);if(typeof a==="function"){if(window.attachEvent){b.onreadystatechange=function(){var e=b.readyState;if(e==="loaded"||e==="complete"){b.onreadystatechange=null;a()}}}else{b.onload=a}}c.appendChild(b)};loadJs("https://changyan.sohu.com/upload/changyan.js",function(){window.changyan.api.config({appid:appid,conf:conf})}); } })(); </script>
+      
+    
+
+   
+  </div>
+
+  <div class="col-md-4">
+    
+<aside class="l-sidebar">
+
+  
+  
+  <section class="panel panel-default">
+    <div class="panel-heading">
+      
+      <div class="panel-title">CATEGORY</div>
+    </div>
+    <div class="list-group">
+      
+      <a href="https://coldwalker.com/categories/%E6%8A%80%E6%9C%AF" class="list-group-item">技术(4)</a>
+      
+      <a href="https://coldwalker.com/categories/%E6%84%9F%E6%82%9F" class="list-group-item">感悟(1)</a>
+      
+      <a href="https://coldwalker.com/categories/%E7%94%9F%E6%B4%BB" class="list-group-item">生活(1)</a>
+      
+    </div>
+  </section>
+  
+  <section class="panel panel-default">
+    <div class="panel-heading">
+      
+      <div class="panel-title">TAG</div>
+    </div>
+    <div class="list-group">
+      
+      <a href="https://coldwalker.com/tags/java" class="list-group-item">Java(4)</a>
+      
+      <a href="https://coldwalker.com/tags/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5" class="list-group-item">问题排查(3)</a>
+      
+      <a href="https://coldwalker.com/tags/jvm" class="list-group-item">Jvm(2)</a>
+      
+      <a href="https://coldwalker.com/tags/netflix" class="list-group-item">Netflix(1)</a>
+      
+      <a href="https://coldwalker.com/tags/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6" class="list-group-item">开源组件(1)</a>
+      
+      <a href="https://coldwalker.com/tags/%E6%9C%8D%E5%8A%A1%E7%A8%B3%E5%AE%9A%E6%80%A7" class="list-group-item">服务稳定性(1)</a>
+      
+    </div>
+  </section>
+  
+ 
+  
+  <section class="panel panel-default">
+    <div class="panel-heading">
+      <div class="panel-title">Archive</div>
+    </div>
+    
+      
+    <div class="list-group">
+      <a href="https://coldwalker.com/post/#2018-08" class="list-group-item">2018-08(1)</a>
+    
+      
+    <div class="list-group">
+      <a href="https://coldwalker.com/post/#2018-03" class="list-group-item">2018-03(4)</a>
+    
+    </div>
+  </section>
+  
+</aside>
+
+
+  </div>
+</div>
+
+      </div>
+    </main>
+
+    <footer class="l-footer">
+      <div class="container">
+        <p>© This post is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License，please give source if you wish to quote or reproduce.</p>
+        
+      </div>
+    </footer>
+
+    <script src="//code.jquery.com/jquery-3.1.1.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </body>
+</html>
+

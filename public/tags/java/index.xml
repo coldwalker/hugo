@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Java on 凛冬夜行</title>
+    <link>https://coldwalker.com/tags/java/</link>
+    <description>Recent content in Java on 凛冬夜行</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <copyright>© This post is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License，please give source if you wish to quote or reproduce.</copyright>
+    <lastBuildDate>Wed, 15 Aug 2018 16:30:00 +0800</lastBuildDate>
+    
+	<atom:link href="https://coldwalker.com/tags/java/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Java堆外内存增长问题排查Case</title>
+      <link>https://coldwalker.com/2018/08//troubleshooter_native_memory_increase/</link>
+      <pubDate>Wed, 15 Aug 2018 16:30:00 +0800</pubDate>
+      
+      <guid>https://coldwalker.com/2018/08//troubleshooter_native_memory_increase/</guid>
+      <description>最近排查一个线上java服务常驻内存异常高的问题，大概现象是：java堆Xmx配置了8G，但运行一段时间后常驻内存RES从5G逐渐增长到13</description>
+    </item>
+    
+    <item>
+      <title>一个StackOverFlowError问题引出的JVM栈内存管理</title>
+      <link>https://coldwalker.com/2018/03//troubleshooter_stackoverflowerror/</link>
+      <pubDate>Wed, 21 Mar 2018 16:51:44 +0800</pubDate>
+      
+      <guid>https://coldwalker.com/2018/03//troubleshooter_stackoverflowerror/</guid>
+      <description>&lt;p&gt;最近项目中在使用javacv时在加载jar中的so共享链接库时出现了StackOverFlowError，最终原因是由于jvm启动时指定的最大栈内存Xss的大小不够，从而导致线程栈溢出。&lt;br /&gt;
+从-Xss256k调整为-Xss1m后问题解决。&lt;br /&gt;
+&lt;em&gt;注意： JDK1.5开始，xss 64位默认1M, 32为默认512K。&lt;/em&gt;&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>服务稳定性提升之-熔断组件Hystrix</title>
+      <link>https://coldwalker.com/2018/03//robust-service_hystrix/</link>
+      <pubDate>Wed, 21 Mar 2018 15:43:14 +0800</pubDate>
+      
+      <guid>https://coldwalker.com/2018/03//robust-service_hystrix/</guid>
+      <description>&lt;p&gt;Hystrix是netflix公司开源的一个通用系统保护框架，提供服务对远程依赖的快速失败机制、requestCache支持、请求合并能力等。目前通讯这边已经大范围使用，并结合profile日志进行了一些简单的定制化，目前使用情况看，实用性和稳定性比较出色，接入成本也较低。有兴趣的组可以参考以下范例尝试接入使用。&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>问题排查利器之-JVM动态追踪工具BTrace</title>
+      <link>https://coldwalker.com/2018/03//troubleshooter_btrace01/</link>
+      <pubDate>Tue, 20 Mar 2018 14:18:25 +0800</pubDate>
+      
+      <guid>https://coldwalker.com/2018/03//troubleshooter_btrace01/</guid>
+      <description>&lt;p&gt;很多时候怀疑线上运行的代码有问题但又苦于日志打的不够详细的时候，BTrace作为基于ASM实现的代码动态跟踪工具能很快排上用场，在不需要重启java进程的情况下，通过脚本动态切入到嫌疑代码块，快速定位问题。&lt;/p&gt;</description>
+    </item>
+    
+  </channel>
+</rss>

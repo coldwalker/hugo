@@ -1,7 +1,7 @@
 baseURL = "https://coldwalker.com/"
 languageCode = "zh-CN"
 title = "凛冬夜行"
-theme="hugo_theme_robust"
+theme="hugo_theme_beg"
 canonifyurls = true
 pygmentsStyle = "monokai"
 pygmentsUseClasses = false
