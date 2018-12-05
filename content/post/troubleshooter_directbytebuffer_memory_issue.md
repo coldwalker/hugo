@@ -660,11 +660,11 @@ static int read(FileDescriptor fd, ByteBuffer dst, long position,
 
 
 ### 分析结论
-*<font color=grey>NIO中在使用HeapByteBuffer进行IO操作时，会使用一个临时的DirectByteBuffer来和系统进行交互，为提高性能，当使用完后这个临时的DirectByteBuffer会被存放到ThreadLocal的缓存中不会释放，当直接使用HeapByteBuffer的线程数较多或者IO操作的size较大时，会导致这些临时的DirectByteBuffer占用大量堆外内存造成泄露。</font>*
+*<font color=grey>NIO中的FileChannel、SocketChannel等Channel默认在通过IOUtil进行IO读写操作时，除了会使用HeapByteBuffer作为和应用程序的对接缓冲，但在底层还会使用一个临时的DirectByteBuffer来和系统进行真正的IO交互，为提高性能，当使用完后这个临时的DirectByteBuffer会被存放到ThreadLocal的缓存中不会释放，当直接使用HeapByteBuffer的线程数较多或者IO操作的size较大时，会导致这些临时的DirectByteBuffer占用大量堆外内存造成泄露。</font>*
 
 *那么除了减少直接调用ehcache读写的线程数有没有其他办法能解决这个问题？并发比较高的场景下一味减少业务线程数不是一个好办法。答案是有的！*
 
-*<font color=grey>NIO中的FileChannel、SocketChannel等Channel默认在通过IOUtil进行IO读写操作时，除了会使用HeapByteBuffer作为和应用程序的对接缓冲，但在底层还会使用一个临时的DirectByteBuffer来和系统进行真正的IO交互，为提高性能，当使用完后这个临时的DirectByteBuffer会被存放到ThreadLocal的缓存中不会释放，当直接使用HeapByteBuffer的线程数较多或者IO操作的size较大时，会导致这些临时的DirectByteBuffer占用大量堆外内存造成泄露。</font>*
+*<font color=grey>在Java1.8_102版本开始，官方提供一个参数jdk.nio.maxCachedBufferSize，这个参数用于限制可以被缓存的DirectByteBuffer的大小，对于超过这个限制的DirectByteBuffer不会被缓存到ThreadLocal的bufferCache中，这样就能被GC正常回收掉。唯一的tradeoff是读写的性能会稍差一些，毕竟创建一个新的DirectByteBuffer的代价也不小，当然如上面列出的，性能也没有数量级的差别。我们业务就是调整了-Djdk.nio.maxCachedBufferSize=500000（注意这里是字节数，不能用m、k、g）之后，运行几天整体DirectByteBuffer稳定控制在300m左右，性能也几乎没有衰减。</font>*
 
 *搞定收工 ！*
 
