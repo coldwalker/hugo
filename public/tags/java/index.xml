@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Java on 凛冬夜行</title>
+    <link>https://coldwalker.com/tags/java/</link>
+    <description>Recent content in Java on 凛冬夜行</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <copyright>© This post is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License，please give source if you wish to quote or reproduce.</copyright>
+    <lastBuildDate>Tue, 19 Feb 2019 17:00:00 +0800</lastBuildDate>
+    
+	<atom:link href="https://coldwalker.com/tags/java/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Java垃圾回收浅析-GC方式介绍</title>
+      <link>https://coldwalker.com/2019/02//gc_intro/</link>
+      <pubDate>Tue, 19 Feb 2019 17:00:00 +0800</pubDate>
+      
+      <guid>https://coldwalker.com/2019/02//gc_intro/</guid>
+      <description>为什么需要GC？ 当程序创建对象、数组等引用类型实体时，系统都会在堆内存中为之分配一块内存区，对象就保存在这块内存区中，当这块内存不再被任何引</description>
+    </item>
+    
+    <item>
+      <title>Java垃圾回收浅析-对象内存申请</title>
+      <link>https://coldwalker.com/2019/02//gc_object_alloc_process/</link>
+      <pubDate>Thu, 14 Feb 2019 15:40:00 +0800</pubDate>
+      
+      <guid>https://coldwalker.com/2019/02//gc_object_alloc_process/</guid>
+      <description>Java虚拟机内存管理 和C/C++语言不同，Java通过虚拟机来对内存进行自动管理，避免了手动申请和释放内存的繁琐以及容易出错的问题，Jav</description>
+    </item>
+    
+    <item>
+      <title>DirectByteBuffer堆外内存溢出问题排查</title>
+      <link>https://coldwalker.com/2018/12//troubleshooter_directbytebuffer_memory_issue/</link>
+      <pubDate>Mon, 03 Dec 2018 11:30:00 +0800</pubDate>
+      
+      <guid>https://coldwalker.com/2018/12//troubleshooter_directbytebuffer_memory_issue/</guid>
+      <description>前情提要 最近线上一个图片服务在使用ehcache的diskcache替代旧版“自实现”的磁盘缓存时，发生了java进程常驻内存暴涨导致部署机</description>
+    </item>
+    
+    <item>
+      <title>Java堆外内存增长问题排查Case</title>
+      <link>https://coldwalker.com/2018/08//troubleshooter_native_memory_increase/</link>
+      <pubDate>Wed, 15 Aug 2018 16:30:00 +0800</pubDate>
+      
+      <guid>https://coldwalker.com/2018/08//troubleshooter_native_memory_increase/</guid>
+      <description>最近排查一个线上java服务常驻内存异常高的问题，大概现象是：java堆Xmx配置了8G，但运行一段时间后常驻内存RES从5G逐渐增长到13</description>
+    </item>
+    
+    <item>
+      <title>一个StackOverFlowError问题引出的JVM栈内存管理</title>
+      <link>https://coldwalker.com/2018/03//troubleshooter_stackoverflowerror/</link>
+      <pubDate>Wed, 21 Mar 2018 16:51:44 +0800</pubDate>
+      
+      <guid>https://coldwalker.com/2018/03//troubleshooter_stackoverflowerror/</guid>
+      <description>&lt;p&gt;最近项目中在使用javacv时在加载jar中的so共享链接库时出现了StackOverFlowError，最终原因是由于jvm启动时指定的最大栈内存Xss的大小不够，从而导致线程栈溢出。&lt;br /&gt;
+从-Xss256k调整为-Xss1m后问题解决。&lt;br /&gt;
+&lt;em&gt;注意： JDK1.5开始，xss 64位默认1M, 32为默认512K。&lt;/em&gt;&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>服务稳定性提升之-熔断组件Hystrix</title>
+      <link>https://coldwalker.com/2018/03//robust-service_hystrix/</link>
+      <pubDate>Wed, 21 Mar 2018 15:43:14 +0800</pubDate>
+      
+      <guid>https://coldwalker.com/2018/03//robust-service_hystrix/</guid>
+      <description>&lt;p&gt;Hystrix是netflix公司开源的一个通用系统保护框架，提供服务对远程依赖的快速失败机制、requestCache支持、请求合并能力等。目前通讯这边已经大范围使用，并结合profile日志进行了一些简单的定制化，目前使用情况看，实用性和稳定性比较出色，接入成本也较低。有兴趣的组可以参考以下范例尝试接入使用。&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>问题排查利器之-JVM动态追踪工具BTrace</title>
+      <link>https://coldwalker.com/2018/03//troubleshooter_btrace01/</link>
+      <pubDate>Tue, 20 Mar 2018 14:18:25 +0800</pubDate>
+      
+      <guid>https://coldwalker.com/2018/03//troubleshooter_btrace01/</guid>
+      <description>&lt;p&gt;很多时候怀疑线上运行的代码有问题但又苦于日志打的不够详细的时候，BTrace作为基于ASM实现的代码动态跟踪工具能很快排上用场，在不需要重启java进程的情况下，通过脚本动态切入到嫌疑代码块，快速定位问题。&lt;/p&gt;</description>
+    </item>
+    
+  </channel>
+</rss>
