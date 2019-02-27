@@ -1,5 +1,5 @@
 ---
-title: "Java垃圾回收浅析-GC方式介绍"
+title: "Java垃圾回收浅析2-GC方式介绍"
 date: 2019-02-19T17:00:00+08:00
 categories: ["技术"]
 tags: ["GC","Java"]

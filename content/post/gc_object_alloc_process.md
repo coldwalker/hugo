@@ -1,5 +1,5 @@
 ---
-title: "Java垃圾回收浅析-对象内存申请"
+title: "Java垃圾回收浅析1-对象内存申请"
 date: 2019-02-14T15:40:00+08:00
 categories: ["技术"]
 tags: ["GC","Java"]

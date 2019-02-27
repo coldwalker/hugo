@@ -3,6 +3,16 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://coldwalker.com/2019/02//gc_problem_resolve/</loc>
+    <lastmod>2019-02-27T11:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://coldwalker.com/2019/02//gc_log_analyze/</loc>
+    <lastmod>2019-02-25T16:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://coldwalker.com/2019/02//gc_intro/</loc>
     <lastmod>2019-02-19T17:00:00+08:00</lastmod>
   </url>
@@ -49,13 +59,13 @@
   
   <url>
     <loc>https://coldwalker.com/tags/gc/</loc>
-    <lastmod>2019-02-19T17:00:00+08:00</lastmod>
+    <lastmod>2019-02-27T11:00:00+08:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>https://coldwalker.com/tags/java/</loc>
-    <lastmod>2019-02-19T17:00:00+08:00</lastmod>
+    <lastmod>2019-02-27T11:00:00+08:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -73,19 +83,19 @@
   
   <url>
     <loc>https://coldwalker.com/post/</loc>
-    <lastmod>2019-02-19T17:00:00+08:00</lastmod>
+    <lastmod>2019-02-27T11:00:00+08:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>https://coldwalker.com/tags/</loc>
-    <lastmod>2019-02-19T17:00:00+08:00</lastmod>
+    <lastmod>2019-02-27T11:00:00+08:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>https://coldwalker.com/</loc>
-    <lastmod>2019-02-19T17:00:00+08:00</lastmod>
+    <lastmod>2019-02-27T11:00:00+08:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -103,7 +113,7 @@
   
   <url>
     <loc>https://coldwalker.com/categories/%E6%8A%80%E6%9C%AF/</loc>
-    <lastmod>2019-02-19T17:00:00+08:00</lastmod>
+    <lastmod>2019-02-27T11:00:00+08:00</lastmod>
     <priority>0</priority>
   </url>
   

@@ -7,13 +7,31 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>© This post is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License，please give source if you wish to quote or reproduce.</copyright>
-    <lastBuildDate>Tue, 19 Feb 2019 17:00:00 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 27 Feb 2019 11:00:00 +0800</lastBuildDate>
     
 	<atom:link href="https://coldwalker.com/post/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
-      <title>Java垃圾回收浅析-GC方式介绍</title>
+      <title>Java垃圾回收浅析4-GC常见问题分析</title>
+      <link>https://coldwalker.com/2019/02//gc_problem_resolve/</link>
+      <pubDate>Wed, 27 Feb 2019 11:00:00 +0800</pubDate>
+      
+      <guid>https://coldwalker.com/2019/02//gc_problem_resolve/</guid>
+      <description>常见的几种GC问题 回顾一下：上面几篇先讲到了java对象内存分配过程、然后总结了几种GC方式和常见的GC算法原理，也基本了解了GC日志怎么看</description>
+    </item>
+    
+    <item>
+      <title>Java垃圾回收浅析3-GC日志分析</title>
+      <link>https://coldwalker.com/2019/02//gc_log_analyze/</link>
+      <pubDate>Mon, 25 Feb 2019 16:00:00 +0800</pubDate>
+      
+      <guid>https://coldwalker.com/2019/02//gc_log_analyze/</guid>
+      <description>控制GC日志打印的常用配置项 -XX:+PrintGCDetails 启用详细GC日志模式。和-XX:+PrintGC的普通日志模式相比，详细日志模式会把：使用的垃圾回收器、整个堆</description>
+    </item>
+    
+    <item>
+      <title>Java垃圾回收浅析2-GC方式介绍</title>
       <link>https://coldwalker.com/2019/02//gc_intro/</link>
       <pubDate>Tue, 19 Feb 2019 17:00:00 +0800</pubDate>
       
@@ -22,7 +40,7 @@
     </item>
     
     <item>
-      <title>Java垃圾回收浅析-对象内存申请</title>
+      <title>Java垃圾回收浅析1-对象内存申请</title>
       <link>https://coldwalker.com/2019/02//gc_object_alloc_process/</link>
       <pubDate>Thu, 14 Feb 2019 15:40:00 +0800</pubDate>
       
