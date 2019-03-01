@@ -287,13 +287,12 @@ G1收集器有三种GC模式：
 
 
 #### 延伸知识点2：如何识别“垃圾对象”？
-##### *引用*
-在JVM里，使用的“跟踪回收”算法从GC ROOTS出发，按照广度或者深度方式遍历所有与GC ROOTS可达的对象，根据引用类型和GC类型（是否Full GC），将某些对象标记为“使用中”，然后回收其他不在“使用中”的对象。
-Java中，所有对象引用都被标识为五种类型：强引用（StrongReference）、软引用（SoftReference）、弱引用（WeakReference）、幻象引用（PhantomReference）、Final引用（FinalReference）。
+##### 为什么需要引用？
+如前所述：在最早的JVM实现里，使用“跟踪回收”算法从GC ROOTS出发，按照广度或者深度方式遍历所有与GC ROOTS可达的对象，针对那些GC不可达的垃圾对象进行回收。但随着Java的演进，针对最早这种比较简单的GC方式逐渐暴露出一些不能覆盖的情景，比如：某些场景下使用方希望在回收具体对象的同时还能辅助回收这个对象绑定的一些资源（比如socket、堆外内存等）、某些场景下希望使用的堆内缓存组件能尽量缓存更多的数据但又不会导致OOM。考虑到上述类似的使用场景，从JDK 1.2开始，JDK引入了软引用（SoftReference）、弱引用（WeakReference）、幻象引用（PhantomReference）、Final引用（FinalReference）四种新的引用来支持一些新的特性。对象创建时，可以通过不同的引用来对对象进行封装，GC时，当真正的业务对象除了这个引用外没有其他GC ROOTS可达的时候，JVM会根据引用类型和GC类型（是否是Full GC）来对这个“真实对象”进行一些特殊处理，比如：回收这个对象绑定的其他资源、比如根据GC类型来觉得是否本次要把对象进行回收等。
 ![a5b1bd167692a29a29d2e09a75211e0c.png](/images/gc_intro/1119937-20190130111221088-1473128563.png)
       
 ##### GC如何识别和处理引用？
-JVM垃圾回收器硬编码识别SoftReference，WeakReference，PhantomReference等这些具体的类，GC过程中，识别查找到引用对象没有被其他强引用使用的Reference，然后添加到一个pending列表，这个pending列表由GC来维护，通过Reference类的一个静态的pending变量（链表头）和一个实例变量discovered（链表下一节点）来实现；Reference有一个高优先级的ReferenceHandler线程，这个线程不停的从pending列表中取出待处理的Reference进行处理：有的放到Reference各自的ReferenceQueue队列里供使用者进行处理（如：PhantomReference和WeakReference）、有的直接调用固定的处理方法进行清理（如：Cleaner）。
+“真实对象”创建时，可以通过Reference来对“真实对象”进行封装引用，然后通过一些方法保证这个引用GC ROOTS可达（比如封装完“真实对象”后将这个引用加入到一个静态链表中），JVM垃圾回收器硬编码识别SoftReference，WeakReference，PhantomReference，Final引用（FinalReference）等这些具体的类，GC过程中，识别查找到引用对象没有被其他强引用使用的Reference，然后添加到Reference类的pending链表，这个pending链表由GC来维护，通过Reference类的一个静态的pending变量（链表头）和一个实例变量discovered（链表下一节点）来实现；Reference有一个高优先级的ReferenceHandler线程，这个线程不停的从pending链表中取出待处理的Reference进行处理：有的放到Reference各自的ReferenceQueue队列里供使用者进行处理（如：PhantomReference和WeakReference）、有的直接调用固定的处理方法进行清理（如：Cleaner）。
 
 _先看下Reference类的重要部分：_
 ```
@@ -657,7 +656,7 @@ GC时，各垃圾收集器都会在过程中，先找到当前回收代中那些
 
 
 ###### 发现引用
-_“引用发现”这个过程的主要工作：_找出当前回收代中的这些引用：“指向的referent没有被其它强引用所使用”。_
+_“引用发现”这个过程的主要工作：_找出当前回收代中的可能需要被回收的这些引用。_
 如ParNew垃圾回收器中的Ref"发现-标记"过程（parNewGeneration.cpp）：
 
 >先处理roots触发，引用到的对象都拷贝到to space，然后通过par_scan_state.evacuate_followers_closure().do_void()在to space里遍历全部年轻代存活对象。</i>
@@ -746,11 +745,17 @@ oop_oop_iterate##nv_suffix(oop obj, OopClosureType* closure) {                  
   } 
   ...
 ```
->discover_reference方法中，对"发现"的各种引用，会真正操作Reference的discovered字段来维护"发现"的引用链表。
+<i>
+discover_reference方法中，只收集那些还“存活的”、“reference是在当前回收代的”、“引用的真实对象还不确定是否被其他强引用的”的引用，会真正操作Reference的discovered字段来维护"发现"的引用链表。
+PS：这里“发现”引用的阶段有两种情况需要考虑：
+1. 如果是引用指向的对象先被GC扫描到被强引用了，那么引用以及它所指向的对象都不会被“发现”（而是随后连同引用和指向对象都被copy到To区）。
+2. 如果是引用本身先被GC扫描到，那么这里的“发现”阶段还是会把引用先加入到discovered链表中并将引用搬到To区（但不动引用指向的对象），等GC后，在后面“处理”引用的阶段会遍历这个discovered链表，找出那些除了自己外还有其他“强引用”指向referent对象的引用（这个referent对象由于有强引用已经被copy到To区了），然后从discovered链表删除自己并更新引用指向的对象地址，这样后续就不用再处理了。
+</i>
+
 ```
 bool ReferenceProcessor::discover_reference(oop obj, ReferenceType rt) {
 ...
-//只收集那些“指向的referent没有被其它强引用所使用的引用”
+//只收集那些“引用的真实对象暂时还不确定是否被其他强引用的”的引用
 // We only discover references whose referents are not (yet)
   // known to be strongly reachable.
   if (is_alive_non_header() != NULL) {
@@ -781,7 +786,7 @@ if (_discovery_is_mt) {
     }
 ```
 ###### 处理引用
-针对之前"发现"的引用，GC过程还会通过ReferenceProcessor的process\_discovered\_references来对所有类型的Reference（soft、weak、phantom、final）进行处理，处理步骤分成3个阶段，主要工作：过滤软引用、过滤referent存活的引用 、
+针对之前"发现"的引用，GC过程还会通过ReferenceProcessor的process\_discovered\_references来对所有类型的Reference（soft、weak、phantom、final）进行处理，处理步骤分成3个阶段，主要工作：根据GC策略来过滤软引用、过滤GC后那些referent还存活的引用 、根据不同引用类型决定是否马上解除对referent的引用（如弱引用、软引用和Cleaner在这里直接清理了对referent的引用，而幻象引用和Final引用这里先不清除，因为后面还需要用到）。
 
 还是是ParNew回收器为例，GC时，在完成“引用发现”后，会通过process_discovered_references方法对引用进行处理，最后GC完成内存回收后再将Reference加入到pending列表中以便后续处理。
 
@@ -817,9 +822,9 @@ void ParNewGeneration::collect(bool   full,
       ...
     }
 ```
->处理”被发现“的引用的方法process_discovered_references主要实现在referenceProcessor.cpp的process_discovered_reflist中，包括三个阶段。
+>GC完成时，处理”被发现“的引用的方法process_discovered_references主要实现在referenceProcessor.cpp的process_discovered_reflist中，包括三个阶段。
 1. 第一个阶段只处理软引用：因为软引用普通GC时是不能回收处理的，所以需要从discovered链表中移除所有不存活但是还不能被回收的软引用；
-2. 第二阶段处理所有引用：移除所有那些referent还存活的引用。
+2. 第二阶段处理所有引用：从discoverd链表移除那些GC时"发现"阶段还不确定referent有没有被其他强引用但现在GC遍历完了确定"有被强引用"的引用。
 3. 第三阶段处理剩下引用的referent：根据clear_referent的值决定是否将对referent的引用解除，方便下一次GC时回收referent。 （比如Final和Phantom是先不解除引用的，因为后续还要用；Weak是可以解除的）。
 ```
 ReferenceProcessor::process_discovered_reflist(
@@ -943,6 +948,7 @@ _参考：_
 [垃圾优先型垃圾回收器调优](https://www.oracle.com/technetwork/cn/articles/java/g1gc-1984535-zhs.html)
 [G1: One Garbage Collector To Rule Them All](https://www.infoq.com/articles/G1-One-Garbage-Collector-To-Rule-Them-All)
 [JDK源码阅读-Reference](http://imushan.com/2018/08/19/java/language/JDK源码阅读-Reference/)
+[WeakReference vs. SoftReference](https://zhuanlan.zhihu.com/p/29415902)
 
 
 
