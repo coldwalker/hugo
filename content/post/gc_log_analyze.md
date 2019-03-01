@@ -1,5 +1,5 @@
 ---
-title: "Java垃圾回收浅析3-GC日志分析"
+title: "Java垃圾回收浅析(3)-GC日志分析"
 date: 2019-02-25T16:00:00+08:00
 categories: ["技术"]
 tags: ["GC","Java"]

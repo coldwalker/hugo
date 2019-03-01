@@ -13,7 +13,7 @@
     
     
     <item>
-      <title>Java垃圾回收浅析4-GC常见问题分析</title>
+      <title>Java垃圾回收浅析(4)-GC常见问题分析</title>
       <link>https://coldwalker.com/2019/02//gc_problem_resolve/</link>
       <pubDate>Wed, 27 Feb 2019 11:00:00 +0800</pubDate>
       
@@ -22,7 +22,7 @@
     </item>
     
     <item>
-      <title>Java垃圾回收浅析3-GC日志分析</title>
+      <title>Java垃圾回收浅析(3)-GC日志分析</title>
       <link>https://coldwalker.com/2019/02//gc_log_analyze/</link>
       <pubDate>Mon, 25 Feb 2019 16:00:00 +0800</pubDate>
       
@@ -31,7 +31,7 @@
     </item>
     
     <item>
-      <title>Java垃圾回收浅析2-GC方式介绍</title>
+      <title>Java垃圾回收浅析(2)-GC方式介绍</title>
       <link>https://coldwalker.com/2019/02//gc_intro/</link>
       <pubDate>Tue, 19 Feb 2019 17:00:00 +0800</pubDate>
       
@@ -40,7 +40,7 @@
     </item>
     
     <item>
-      <title>Java垃圾回收浅析1-对象内存申请</title>
+      <title>Java垃圾回收浅析(1)-对象内存申请</title>
       <link>https://coldwalker.com/2019/02//gc_object_alloc_process/</link>
       <pubDate>Thu, 14 Feb 2019 15:40:00 +0800</pubDate>
       

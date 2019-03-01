@@ -1,5 +1,5 @@
 ---
-title: "Java垃圾回收浅析4-GC常见问题分析"
+title: "Java垃圾回收浅析(4)-GC常见问题分析"
 date: 2019-02-27T11:00:00+08:00
 categories: ["技术"]
 tags: ["GC","Java"]

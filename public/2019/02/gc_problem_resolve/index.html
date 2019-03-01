@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+<meta name="pinterest" content="nopin">
+<meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
+<meta name="generator" content="Hugo 0.38-DEV" />
+
+
+
+<link rel="canonical" href="https://coldwalker.com/2019/02//gc_problem_resolve/">
+
+
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/solarized_dark.min.css">
+    <link rel="stylesheet" href="https://coldwalker.com/css/search.css" />
+    <title>Java垃圾回收浅析(4)-GC常见问题分析 - 凛冬夜行</title>
+    
+<meta name="description" content="常见的几种GC问题 回顾一下：上面几篇先讲到了java对象内存分配过程、然后总结了几种GC方式和常见的GC算法原理，也基本了解了GC日志怎么看">
+
+<meta property="og:title" content="Java垃圾回收浅析(4)-GC常见问题分析 - 凛冬夜行">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://coldwalker.com/2019/02//gc_problem_resolve/">
+<meta property="og:image" content="https://coldwalker.com/images/gc_problem_resolve/yinxing.jpg">
+<meta property="og:site_name" content="凛冬夜行">
+<meta property="og:description" content="常见的几种GC问题 回顾一下：上面几篇先讲到了java对象内存分配过程、然后总结了几种GC方式和常见的GC算法原理，也基本了解了GC日志怎么看">
+<meta property="og:locale" content="ja_JP">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="凛冬夜行">
+<meta name="twitter:url" content="https://coldwalker.com/2019/02//gc_problem_resolve/">
+<meta name="twitter:title" content="Java垃圾回收浅析(4)-GC常见问题分析 - 凛冬夜行">
+<meta name="twitter:description" content="常见的几种GC问题 回顾一下：上面几篇先讲到了java对象内存分配过程、然后总结了几种GC方式和常见的GC算法原理，也基本了解了GC日志怎么看">
+<meta name="twitter:image" content="https://coldwalker.com/images/gc_problem_resolve/yinxing.jpg">
+
+
+<script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "NewsArticle",
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id":"https://coldwalker.com/"
+    },
+    "headline": "Java垃圾回收浅析(4)-GC常见问题分析 - 凛冬夜行",
+    "image": {
+      "@type": "ImageObject",
+      "url": "https://coldwalker.com/images/gc_problem_resolve/yinxing.jpg",
+      "height": 800,
+      "width": 800
+    },
+    "datePublished": "2019-02-27T11:00:00JST",
+    "dateModified": "2019-02-27T11:00:00JST",
+    "author": {
+      "@type": "Person",
+      "name": "凛冬夜行"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "凛冬夜行",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://coldwalker.com/images/logo.png",
+        "width": 600,
+        "height": 60
+      }
+    },
+    "description": "常见的几种GC问题 回顾一下：上面几篇先讲到了java对象内存分配过程、然后总结了几种GC方式和常见的GC算法原理，也基本了解了GC日志怎么看"
+  }
+</script>
+
+
+    <link href="https://coldwalker.com/css/styles.css" rel="stylesheet">
+    
+
+  </head>
+
+  <body>
+    
+        
+            
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-116113253-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+        
+        
+            <script>
+            var _hmt = _hmt || [];
+            (function() {
+              var hm = document.createElement("script");
+              hm.src = "https://hm.baidu.com/hm.js?f13b34958e759c7a5400b5cdf455f21c";
+              var s = document.getElementsByTagName("script")[0];
+              s.parentNode.insertBefore(hm, s);
+            })();
+            </script>
+        
+   
+    
+
+    <header class="l-header">
+      <nav class="navbar navbar-default">
+        <div class="container">
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
+              <span class="sr-only">Toggle navigation</span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="https://coldwalker.com/">凛冬夜行</a>
+          </div>
+
+          
+          <div id="navbar" class="collapse navbar-collapse">
+            
+            <ul class="nav navbar-nav navbar-right">
+              
+              
+              <li><a href="https://coldwalker.com/2018/03/about/">about Me</a></li>
+              
+              
+              
+              <li>
+                  <a href="#modalSearch" data-toggle="modal" data-target="#modalSearch" style="outline: none;">
+                    <span class="hidden-sm hidden-md hidden-lg"></span> <span id="searchGlyph" class="glyphicon glyphicon-search"></span>
+                  </a>
+             </li>
+                
+            </ul>
+            
+          </div>
+          
+
+        </div>
+    
+         <div id="modalSearch" class="modal fade" role="dialog">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal">&times;</button>
+                  <h4 class="modal-title">Search coldwalker.com</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="aa-input-container" id="aa-input-container">
+    <input type="search" id="aa-search-input" class="aa-input-search" placeholder="Search for titles or URIs..." name="search" autocomplete="off" />
+    <svg class="aa-input-icon" viewBox="654 -372 1664 1664">
+        <path d="M1806,332c0-123.3-43.8-228.8-131.5-316.5C1586.8-72.2,1481.3-116,1358-116s-228.8,43.8-316.5,131.5  C953.8,103.2,910,208.7,910,332s43.8,228.8,131.5,316.5C1129.2,736.2,1234.7,780,1358,780s228.8-43.8,316.5-131.5  C1762.2,560.8,1806,455.3,1806,332z M2318,1164c0,34.7-12.7,64.7-38,90s-55.3,38-90,38c-36,0-66-12.7-90-38l-343-342  c-119.3,82.7-252.3,124-399,124c-95.3,0-186.5-18.5-273.5-55.5s-162-87-225-150s-113-138-150-225S654,427.3,654,332  s18.5-186.5,55.5-273.5s87-162,150-225s138-113,225-150S1262.7-372,1358-372s186.5,18.5,273.5,55.5s162,87,225,150s113,138,150,225  S2062,236.7,2062,332c0,146.7-41.3,279.7-124,399l343,343C2305.7,1098.7,2318,1128.7,2318,1164z" />
+    </svg>
+</div>
+<script src="https://res.cloudinary.com/jimmysong/raw/upload/rootsongjc-hugo/algoliasearch.min.js"></script>
+<script src="https://res.cloudinary.com/jimmysong/raw/upload/rootsongjc-hugo/autocomplete.min.js"></script>
+<script>
+var client = algoliasearch("YP0YEWOT73", "546beefe9023181eb1827f484030b66b");
+var index = client.initIndex('coldwalker-blog');
+autocomplete('#aa-search-input',
+{ hint: false}, {
+    source: autocomplete.sources.hits(index, {hitsPerPage: 8}),
+    displayKey: 'name',
+    templates: {
+        suggestion: function(suggestion) {
+            console.log(suggestion);
+            var postDate = new Date(suggestion.date);
+            var postYear = postDate.getFullYear();
+            var postMonth = postDate.getMonth() + 1;
+            if(postMonth < 10)
+            postMonth = "0" + postMonth;
+            var title = suggestion.objectID.split("/", 2)[1];            
+            return '<span>' + '<a href="https://coldwalker.com/' + postYear + "/" + postMonth + "/" + title + '">' +
+            suggestion._highlightResult.title.value + '</a></span>';
+        }
+    }
+});
+</script>
+
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal">close</button>
+                </div>
+              </div>
+            </div>
+        </div>
+
+      </nav>
+    </header>
+
+    <main>
+      <div class="container">
+        
+<div class="row">
+  <div class="col-md-8">
+
+    <nav class="p-crumb">
+      <ol class="breadcrumb">
+        <li><a href="https://coldwalker.com/"><i class="fa fa-home" aria-hidden="true"></i></a></li>
+        
+        <li itemscope="" itemtype="http://data-vocabulary.org/Breadcrumb"><a href="https://coldwalker.com/post/" itemprop="url"><span itemprop="title">post</span></a></li>
+        
+        <li class="active">Java垃圾回收浅析(4)-GC常见问题分析</li>
+      </ol>
+    </nav>
+
+    <article class="single">
+  <header>
+    <ul class="p-facts">
+      <li><i class="fa fa-calendar" aria-hidden="true"></i><time datetime="2019-02-27T11:00:00JST">2019-02-27</time></li>
+      <li><i class="fa fa-bookmark" aria-hidden="true"></i><a href="https://coldwalker.com/post/">post</a></li>
+      
+    </ul>
+
+    <h1 class="title">Java垃圾回收浅析(4)-GC常见问题分析</h1>
+  </header>
+
+  <div class="thumb" style="background-image: url(https://coldwalker.com/images/gc_problem_resolve/yinxing.jpg);"></div>
+
+  <div class="article-body">
+
+<h3 id="常见的几种gc问题">常见的几种GC问题</h3>
+
+<p>回顾一下：上面几篇先讲到了<a href="https://coldwalker.com/2019/02//gc_object_alloc_process/">java对象内存分配过程</a>、然后总结了<a href="https://coldwalker.com/2019/02//gc_intro/">几种GC方式和常见的GC算法原理</a>，也基本了解了<a href="https://coldwalker.com/2019/02//gc_log_analyze/">GC日志怎么看</a>，接下来该是解决问题的时候了，本文会结合GC日志分析几种比较常见的GC问题，从问题引发原因到具体解决方案，希望能从中有所收获！</p>
+
+<h4 id="定位gc日志中stw时间较长的行为">定位GC日志中STW时间较长的行为</h4>
+
+<p>打印所有STW停顿：</p>
+
+<pre><code>-XX:+PrintGCApplicationStoppedTime和-XX:+PrintGCApplicationConcurrentTime
+</code></pre>
+
+<p><i>找出所有暂停时间超过阈值的地方，如下：</i></p>
+
+<pre><code>awk '{match($0,/.*stopped:(.*)seconds,/,a);if(a[1]&gt;0.5) print $0}' /data1/proxy_web_release/gclogs/gc.log.20170617_015811
+</code></pre>
+
+<h4 id="promotion-failed">promotion failed</h4>
+
+<p>GC日志中有时候会发现如下类似的带有“promotion failed”的日志，伴随着这类日志一般都会有较长的STW暂停时间，因此也会对线上应用造成较大影响。接下来对“promotion failed”这种GC异常情况进行一下分析：<br />
+<i>一个常见的promotion failed的gc日志示例：</i></p>
+
+<pre><code>2017-06-17T23:33:20.381+0800: 77708.486: [GC (Allocation Failure) 2017-06-17T23:33:20.382+0800: 77708.487: [ParNew (promotion failed): 3774912K-&gt;3679034K(3774912K), 0.2991519 secs]2017-06-17T23:33:20.681+0800: 77708.786: [CMS: 3270027K-&gt;3522738K(6291456K), 1.9341892 secs] 6332035K-&gt;3522738K(10066368K), [Metaspace: 71553K-&gt;71553K(1116160K)], 2.2340311 secs] [Times: user=5.61 sys=0.06, real=2.24 secs]
+2017-06-17T23:33:22.616+0800: 77710.721: Total time for which application threads were stopped: 2.2411722 seconds, Stopping threads took: 0.0002553 seconds
+</code></pre>
+
+<p><i>young gc 在2017-06-17T23:33:20.382触发，young gc过程花费时间为0.2991519 s，回收前后整个young区占用内存从3774912K变为3679034K。随后触发了一次Full GC来对整个堆进行STW的回收，年老代GC回收花了1.9341892 s，回收后年老代空间从3270027K变成3522738K（整个年轻代对象都promote到年老代去了），整个JVM堆空间从6332035K降低到3522738K。整个Full GC花费的时间是 2.24s（业务线程暂停时间）。</i></p>
+
+<h5 id="promotion-failed发生的场景">promotion failed发生的场景</h5>
+
+<p>young GC时，对象需要从年轻代提升到年老代，但年老代可用空间由于各种原因存放不下这些对象，这时会抛出promotion failed，然后触发一次Full GC来对年老代和永久代（metaspace）进行回收，所以发生promotion failed时是会暂停业务线程引起停顿的，需要特别留意。</p>
+
+<h5 id="什么情况下对象会从年轻代往年老代提升呢">什么情况下对象会从年轻代往年老代提升呢？</h5>
+
+<p><em>主要有以下几种：</em></p>
+
+<ul>
+<li>年轻代中对象到达一定年龄的对象在minor gc时会向年老代提升。<br /></li>
+<li>minor gc时一个survivor空间无法装下所有年轻代存活的对象时，部分未到达年龄的对象也会向年老代提前提升。<br />
+<br /></li>
+</ul>
+
+<h5 id="young-gc的-悲观策略">Young GC的“悲观策略”</h5>
+
+<p>有的情况下，如果JVM判断本次young GC需要提升的大小年老代放不下就会放弃本次young GC，而是直接触发一次Full GC。这种情况被称为young GC的”悲观策略“。ParNew收集器里”悲观策略“相关判断逻辑在ParNewGeneration的collect里，collection_attempt_is_safe定义在基类DefNewGeneration里，将真正的判断逻辑_next_gen-&gt;promotion_attempt_is_safe交给了next_gen（也就是CMS回收器），promotion_attempt_is_safe代码在ConcurrentMarkSweepGeneration里。</p>
+
+<pre><code>// If the next generation is too full to accommodate worst-case promotion
+  // from this generation, pass on collection; let the next generation
+  // do it.
+  if (!collection_attempt_is_safe()) {
+    gch-&gt;set_incremental_collection_failed();  // slight lie, in that we did not even attempt one
+    return;
+  }
+</code></pre>
+
+<pre><code>bool DefNewGeneration::collection_attempt_is_safe() {
+  if (!to()-&gt;is_empty()) {
+    if (Verbose &amp;&amp; PrintGCDetails) {
+      gclog_or_tty-&gt;print(&quot; :: to is not empty :: &quot;);
+    }
+    return false;
+  }
+  if (_next_gen == NULL) {
+    GenCollectedHeap* gch = GenCollectedHeap::heap();
+    _next_gen = gch-&gt;next_gen(this);
+  }
+  return _next_gen-&gt;promotion_attempt_is_safe(used());
+}
+
+</code></pre>
+
+<h6 id="cms预测本次young-gc需要promote的大小老年代是否可以放下的条件是">CMS预测本次young gc需要promote的大小老年代是否可以放下的条件是：</h6>
+
+<ol>
+<li>老年代可用空间大于gc_stats统计的新生代每次平均晋升的大小。<br /></li>
+<li>老年代可以容纳目前新生代的所有对象。<br />
+<br /></li>
+</ol>
+
+<p><em>两个条件满足一个即可正常触发young GC。</em></p>
+
+<pre><code>bool ConcurrentMarkSweepGeneration::promotion_attempt_is_safe(size_t max_promotion_in_bytes) const {
+  size_t available = max_available();
+  size_t av_promo  = (size_t)gc_stats()-&gt;avg_promoted()-&gt;padded_average();
+  bool   res = (available &gt;= av_promo) || (available &gt;= max_promotion_in_bytes);
+  if (Verbose &amp;&amp; PrintGCDetails) {
+    gclog_or_tty-&gt;print_cr(
+      &quot;CMS: promo attempt is%s safe: available(&quot; SIZE_FORMAT &quot;) %s av_promo(&quot; SIZE_FORMAT &quot;),&quot;
+      &quot;max_promo(&quot; SIZE_FORMAT &quot;)&quot;,
+      res? &quot;&quot;:&quot; not&quot;, available, res? &quot;&gt;=&quot;:&quot;&lt;&quot;,
+      av_promo, max_promotion_in_bytes);
+  }
+  return res;
+}
+</code></pre>
+
+<p>如下这次GC情况就是触发了young GC的“悲观策略”，实际这次young GC没有执行，而是直接进行了一次Full GC。：</p>
+
+<pre><code>2018-09-24T20:18:01.761+0800: 274170.361: [GC (Allocation Failure) 2018-09-24T20:18:01.762+0800: 274170.362: [ParNew: 6291456K-&gt;6291456K(7864320K), 0.0000411 secs] 18389797K-&gt;18389797K(20447232K), 0.0011756 secs] [Times: user=0.00 sys=0.00, real=0.00 secs]
+2018-09-24T20:18:01.763+0800: 274170.362: [Full GC (Allocation Failure) 2018-09-24T20:18:01.763+0800: 274170.363: [CMS: 12098341K-&gt;12111250K(12582912K), 6.4734175 secs] 18389797K-&gt;12111250K(20447232K), [Metaspace: 82207K-&gt;82207K(1124352K)], 6.4746029 secs] [Times: user=4.90 sys=1.03, real=6.48 secs]
+2018-09-24T20:18:08.238+0800: 274176.838: Total time for which application threads were stopped: 6.5035487 seconds, Stopping threads took: 0.0008020 seconds
+</code></pre>
+
+<p><em>因此，当GC log出现promotion failed时肯定是不满足”悲观策略“的判断进行了并行的新生代的垃圾回收，在最后往年老代提升空间不够时才报出的。</em></p>
+
+<h5 id="promotion-failed时触发的full-gc的两种情况">promotion failed时触发的Full GC的两种情况</h5>
+
+<p>采用CMS作为老年代垃圾回收器的时候，当发生promotion failed时会触发一次Full GC，但这次Full GC可能存在两种情况。JVM根据某些条件判断本次Full GC是否需要“整理”来决定这次Full GC是使用单线程的带标记整理（mark-sweep-compact）的Serial GC的算法（do_compaction_work）来进行整个堆的垃圾回收，还是使用CMS自己的mark-sweep（do_mark_sweep_work）来做一次 多线程的<em>foregroud GC</em> 来对老年代进行回收。</p>
+
+<p><em>是否需要整理的判断条件如下:</em><br />
+1. UseCMSCompactAtFullCollection参数开启（默认开启）。<br />
+2. 上次正常的backgroud GC后Full GC（全局Full GC或者老年代foreground GC）的次数_full_gcs_since_conc_gc（每次background GC执行完sweeping阶段就会设置为0）达到启动参数设置的阈值CMSFullGCsBeforeCompaction（默认是0，也就是默认就是每次都“compact”）。<br />
+3. 如果是用户触发的System GC，那么直接进行compact。<br />
+4. 如果上一次young gc晋升时失败了(incremental_collection_failed为true)或者“预测本次晋升可能失败”，那么也直接进行compact。</p>
+
+<p>所以实际上发现，能走到并行的foregroud GC的条件比较苛刻，默认情况下都是执行单线程带compact的Serial Old GC算法（Lisp2算法实现，在genMarkSweep.cpp中）来对整个堆进行回收。</p>
+
+<p><i>采用并行foreground gc还是serial old gc的判断</i></p>
+
+<pre><code>*should_compact =
+    UseCMSCompactAtFullCollection &amp;&amp;
+    ((_full_gcs_since_conc_gc &gt;= CMSFullGCsBeforeCompaction) ||
+     GCCause::is_user_requested_gc(gch-&gt;gc_cause()) ||
+     gch-&gt;incremental_collection_will_fail(true /* consult_young */));
+  ...
+ bool incremental_collection_will_fail(bool consult_young) {
+  
+    assert(heap()-&gt;collector_policy()-&gt;is_two_generation_policy(),
+           &quot;the following definition may not be suitable for an n(&gt;2)-generation system&quot;);
+    return incremental_collection_failed() ||
+           (consult_young &amp;&amp; !get_gen(0)-&gt;collection_attempt_is_safe());
+  }
+</code></pre>
+
+<h6 id="msc实现的serial-old-gc">MSC实现的Serial Old GC</h6>
+
+<p><i>如果需要压缩就使用“带压缩”算法的单线程的Serial Old GC来进行整堆的Full GC，否则使用CMS自己的多线程的foreground GC来对老年代进行回收。</i></p>
+
+<pre><code>if (should_compact) {
+    // If the collection is being acquired from the background
+    // collector, there may be references on the discovered
+    // references lists that have NULL referents (being those
+    // that were concurrently cleared by a mutator) or
+    // that are no longer active (having been enqueued concurrently
+    // by the mutator).
+    // Scrub the list of those references because Mark-Sweep-Compact
+    // code assumes referents are not NULL and that all discovered
+    // Reference objects are active.
+    ref_processor()-&gt;clean_up_discovered_references();
+
+    if (first_state &gt; Idling) {
+      save_heap_summary();
+    }
+
+    do_compaction_work(clear_all_soft_refs);
+
+    // Has the GC time limit been exceeded?
+    DefNewGeneration* young_gen = _young_gen-&gt;as_DefNewGeneration();
+    size_t max_eden_size = young_gen-&gt;max_capacity() -
+                           young_gen-&gt;to()-&gt;capacity() -
+                           young_gen-&gt;from()-&gt;capacity();
+    GenCollectedHeap* gch = GenCollectedHeap::heap();
+    GCCause::Cause gc_cause = gch-&gt;gc_cause();
+    size_policy()-&gt;check_gc_overhead_limit(_young_gen-&gt;used(),
+                                           young_gen-&gt;eden()-&gt;used(),
+                                           _cmsGen-&gt;max_capacity(),
+                                           max_eden_size,
+                                           full,
+                                           gc_cause,
+                                           gch-&gt;collector_policy());
+  } else {
+    do_mark_sweep_work(clear_all_soft_refs, first_state,
+      should_start_over);
+  }
+</code></pre>
+
+<p><i>MSC的具体实现在GenMarkSweep类中（genMarkSweep.cpp) </i></p>
+
+<pre><code>//concurrentMarkSweepGeneration.cpp
+void CMSCollector::do_compaction_work(bool clear_all_soft_refs) {
+...
+GenMarkSweep::invoke_at_safepoint(_cmsGen-&gt;level(),
+    ref_processor(), clear_all_soft_refs);
+...
+//genMarkSweep.cpp
+void GenMarkSweep::invoke_at_safepoint(int level, ReferenceProcessor* rp, bool clear_all_softrefs) {
+  guarantee(level == 1, &quot;We always collect both old and young.&quot;);
+  assert(SafepointSynchronize::is_at_safepoint(), &quot;must be at a safepoint&quot;);
+
+  GenCollectedHeap* gch = GenCollectedHeap::heap(); //处理整个堆
+  ...
+</code></pre>
+
+<h6 id="并行的foreground-gc">并行的foreground GC</h6>
+
+<p><i>如果使用并行的foreground GC，整个过程都是暂停应用的，而且是*同步*的（但仍然是多线程进行处理），为了提高效率，会跳过其中一些阶段。那么这些省下来的阶段主要是并行阶段：Precleaning、AbortablePreclean，Resizing。<br />
+另外，如果当前backgroud的GC正在进行中，如果走到了foreground GC，那么foreground GC会在下一个安全点接管未完成的backgroud GC的后续步骤，这样还能跳过一些之前backgroud GC已经完成的阶段。</i></p>
+
+<p>concurrentMarkSweepGeneration.cpp中相关代码如下：</p>
+
+<pre><code>// A work method used by the foreground collector to do
+// a mark-sweep, after taking over from a possibly on-going
+// concurrent mark-sweep collection.
+void CMSCollector::do_mark_sweep_work(bool clear_all_soft_refs,
+  CollectorState first_state, bool should_start_over) {
+  if (PrintGC &amp;&amp; Verbose) {
+    gclog_or_tty-&gt;print_cr(&quot;Pass concurrent collection to foreground &quot;
+      &quot;collector with count %d&quot;,
+      _full_gcs_since_conc_gc);
+  }
+  switch (_collectorState) {
+    case Idling:
+      if (first_state == Idling || should_start_over) {
+        // The background GC was not active, or should
+        // restarted from scratch;  start the cycle.
+        _collectorState = InitialMarking;
+      }
+      // If first_state was not Idling, then a background GC
+      // was in progress and has now finished.  No need to do it
+      // again.  Leave the state as Idling.
+      break;
+    case Precleaning:
+      // In the foreground case don't do the precleaning since
+      // it is not done concurrently and there is extra work
+      // required.
+      _collectorState = FinalMarking;
+  }
+  collect_in_foreground(clear_all_soft_refs, GenCollectedHeap::heap()-&gt;gc_cause());
+
+  // For a mark-sweep, compute_new_size() will be called
+  // in the heap's do_collection() method.
+}
+</code></pre>
+
+<pre><code>void CMSCollector::collect_in_foreground(bool clear_all_soft_refs, GCCause::Cause cause) {
+switch (_collectorState) {
+      case InitialMarking:
+        register_foreground_gc_start(cause);
+        init_mark_was_synchronous = true;  // fact to be exploited in re-mark
+        checkpointRootsInitial(false);
+        assert(_collectorState == Marking, &quot;Collector state should have changed&quot;
+          &quot; within checkpointRootsInitial()&quot;);
+        break;
+      case Marking:
+        // initial marking in checkpointRootsInitialWork has been completed
+        if (VerifyDuringGC &amp;&amp;
+            GenCollectedHeap::heap()-&gt;total_collections() &gt;= VerifyGCStartAt) {
+          Universe::verify(&quot;Verify before initial mark: &quot;);
+        }
+        {
+          bool res = markFromRoots(false);
+          assert(res &amp;&amp; _collectorState == FinalMarking, &quot;Collector state should &quot;
+            &quot;have changed&quot;);
+          break;
+        }
+      case FinalMarking:
+        if (VerifyDuringGC &amp;&amp;
+            GenCollectedHeap::heap()-&gt;total_collections() &gt;= VerifyGCStartAt) {
+          Universe::verify(&quot;Verify before re-mark: &quot;);
+        }
+        checkpointRootsFinal(false, clear_all_soft_refs,
+                             init_mark_was_synchronous);
+        assert(_collectorState == Sweeping, &quot;Collector state should not &quot;
+          &quot;have changed within checkpointRootsFinal()&quot;);
+        break;
+      case Sweeping:
+        // final marking in checkpointRootsFinal has been completed
+        if (VerifyDuringGC &amp;&amp;
+            GenCollectedHeap::heap()-&gt;total_collections() &gt;= VerifyGCStartAt) {
+          Universe::verify(&quot;Verify before sweep: &quot;);
+        }
+        sweep(false);
+        assert(_collectorState == Resizing, &quot;Incorrect state&quot;);
+        break;
+      case Resizing: {
+        // Sweeping has been completed; the actual resize in this case
+        // is done separately; nothing to be done in this state.
+        _collectorState = Resetting;
+        break;
+      }
+      case Resetting:
+        // The heap has been resized.
+        if (VerifyDuringGC &amp;&amp;
+            GenCollectedHeap::heap()-&gt;total_collections() &gt;= VerifyGCStartAt) {
+          Universe::verify(&quot;Verify before reset: &quot;);
+        }
+        save_heap_summary();
+        reset(false);
+        assert(_collectorState == Idling, &quot;Collector state should &quot;
+          &quot;have changed&quot;);
+        break;
+      case Precleaning:
+      case AbortablePreclean:
+        // Elide the preclean phase
+        _collectorState = FinalMarking;
+        break;
+      default:
+        ShouldNotReachHere();
+    }
+}
+</code></pre>
+
+<p><em>foreground GC由于没有压缩导致本次GC完还是没有足够空间存放的补救</em><br />
+很多情况下，如果走到了foreground GC没有进行compact，碎片问题还是没法得到解决。因此如果这次foreground GC后还是空间不足的话，就会接着进行一次彻底的Full GC，并清理软引用来尽可能回收内存，标记回收软引用后，CMS就会将is_compact设置成true，这样这最后一次Full GC就会使用单线程（VM Thread）的带标记整理（mark-sweep-compact）的Serial Old GC的算法（do_compaction_work）来进行整个堆的垃圾回收。如果这次Full GC还是不行就抛出OOM了。</p>
+
+<pre><code>// Try a full collection; see delta for bug id 6266275
+    // for the original code and why this has been simplified
+    // with from-space allocation criteria modified and
+    // such allocation moved out of the safepoint path.
+    gch-&gt;do_collection(true             /* full */,
+                       false            /* clear_all_soft_refs */,
+                       size             /* size */,
+                       is_tlab          /* is_tlab */,
+                       number_of_generations() - 1 /* max_level */);
+  }
+
+  result = gch-&gt;attempt_allocation(size, is_tlab, false /*first_only*/);
+
+  if (result != NULL) {
+    assert(gch-&gt;is_in_reserved(result), &quot;result not in heap&quot;);
+    return result;
+  }
+
+  // OK, collection failed, try expansion.
+  result = expand_heap_and_allocate(size, is_tlab);
+  if (result != NULL) {
+    return result;
+  }
+
+  // If we reach this point, we're really out of memory. Try every trick
+  // we can to reclaim memory. Force collection of soft references. Force
+  // a complete compaction of the heap. Any additional methods for finding
+  // free memory should be here, especially if they are expensive. If this
+  // attempt fails, an OOM exception will be thrown.
+  {
+    UIntFlagSetting flag_change(MarkSweepAlwaysCompactCount, 1); // Make sure the heap is fully compacted
+
+    gch-&gt;do_collection(true             /* full */,
+                       true             /* clear_all_soft_refs */,
+                       size             /* size */,
+                       is_tlab          /* is_tlab */,
+                       number_of_generations() - 1 /* max_level */);
+  }
+</code></pre>
+
+<pre><code>if (clear_all_soft_refs &amp;&amp; !*should_compact) {
+    // We are about to do a last ditch collection attempt
+    // so it would normally make sense to do a compaction
+    // to reclaim as much space as possible.
+    if (CMSCompactWhenClearAllSoftRefs) {
+      // Default: The rationale is that in this case either
+      // we are past the final marking phase, in which case
+      // we'd have to start over, or so little has been done
+      // that there's little point in saving that work. Compaction
+      // appears to be the sensible choice in either case.
+      *should_compact = true;
+    }
+</code></pre>
+
+<h5 id="promote-failed后gc日志打印的占用大小释疑">promote failed后GC日志打印的占用大小释疑</h5>
+
+<p>当出现promote failed时，有的情况下会发现，本次触发的young GC后，年轻代的内存占用比回收前还上涨了。如下面示例这次：<br />
+这次Minor GC后，居然年轻代的占用空间还从3088943K涨到了3476337K。这个需要了解下Minor GC的过程：Minor GC开始后，遍历GC Roots，碰到eden区和from区的对象就把它挪到to区，但是并不会马上释放老的对象，直到GC完成后才会释放。如果GC出现晋升失败，这种情况下是不会释放这些老对象的，尽管to区里已经有一些eden区和from区对象的副本了。但是GC不管是否成功都会在结束后对from区和to区进行切换，这个时候原来的to区变成from区了，由于GC日志统计的只是eden+from的使用大小，GC前统计的eden+from变成了eden（未释放老对象）+原来的to（包含eden存活的部分拷贝+原来from存活的备份拷贝），这样是有可能统计出来比之前要大的。</p>
+
+<pre><code>2017-10-13T18:11:03.817+0800: 341300.509: [GC (Allocation Failure) 2017-10-13T18:11:03.818+0800: 341300.509: [ParNew (promotion failed): 3088943K-&gt;3476337K(3495296K), 0.2446697 secs]2017-10-13T18:11:04.063+0800: 341300.754: [CMS: 3953608K-&gt;2518422K(6291456K), 1.4883145 secs] 7042552K-&gt;2518422K(9786752K), [Metaspace: 73035K-&gt;73035K(1116160K)], 1.7337265 secs] [Times: user=4.32 sys=0.02, real=1.73 secs]
+</code></pre>
+
+<h4 id="concurrent-mode-failure">concurrent mode failure</h4>
+
+<p>有的时候GC日志中还会出现“concurrent mode failure”类似的异常，一般这种异常会伴随着较长的STW时间发生。出现这种情况的前提是使用了CMS作为年老代的垃圾回收器。CMS是一款并发收集器，GC回收线程和业务的用户线程是并发执行的（除了初始标记和重新标记外其他阶段都是可以和业务线程并行的），并发执行意味着在垃圾回收执行的同时还会不停有新的对象promote到年老代。在并发周期执行期间，用户的线程依然在运行，如果这时候如果应用线程向老年代请求分配的空间超过剩余的空间（担保失败），就会触发concurrent mode failure。</p>
+
+<pre><code>2018-05-05T15:32:56.818+0800: 101200.681: [GC (Allocation Failure) 2018-05-05T15:32:56.819+0800: 101200.682: [ParNew: 5242832K-&gt;5242832K(5242880K), 0.0000388 secs]2018-05
+-05T15:32:56.819+0800: 101200.682: [CMS2018-05-05T15:32:56.873+0800: 101200.736: [CMS-concurrent-sweep: 0.212/0.240 secs] [Times: user=0.26 sys=0.00, real=0.23 secs]
+ (concurrent mode failure): 7033555K-&gt;7033541K(9437184K), 0.0766034 secs] 12276388K-&gt;12276374K(14680064K), [Metaspace: 75013K-&gt;75013K(1118208K)], 0.0777029 secs] [Times: user=0.00 sys=0.00, real=0.08 secs]
+</code></pre>
+
+<p>如上面这次concurrent mode failure，对象分配失败请求一次年轻代GC，但是这次年轻代GC并没有真正执行，根据历史promote的大小和当前年老代的空间剩余大小估算，剩余年老代空间可能不够存放promote上来的对象。因此直接触发了一次Full GC，由于当时backgroup GC正在进行中，所以这时会中止backgroup gc，然后执行一次Full GC或者foreground GC。如这次Full GC总共花费了0.08s，最终年老代空间从7033555K调整成7033541K，整个过程是STW的。</p>
+
+<h5 id="导致concurrent-mode-failure的几种情况">导致concurrent mode failure的几种情况</h5>
+
+<p>当JVM需要申请老年代空间但剩余可用空间不够时，会去判断当前年老代是否正在进行中，如果是在进行中，除了执行Full GC外还会报告concurrent mode failure，以下几种情况会导致concurrent mode failure：<br />
+1. 年轻代发生young GC需要promote对象到老年代但老年代可用空间不够，且老年代正在执行background GC。<br />
+2. 年轻代由于“悲观策略”放弃young GC需要触发Full GC或者CMS的foreground GC，且老年代正在执行background GC。<br />
+3. 新分配对象大小超过-XX:PretenureSizeThreshold阈值直接在老年代分配但老年代可用空间不够，且老年代正在执行background GC。</p>
+
+<p><i>所以promotion failed不一定会导致concurrent mode failure；当然，concurrent mode failure也不一定都是由于promotion failed后的Full GC导致的。</i></p>
+
+<pre><code>CMSCollector::acquire_control_and_collect
+...
+  if (first_state &gt; Idling) {
+    report_concurrent_mode_interruption();
+  }
+</code></pre>
+
+<p><i>如下日志：本次“concurrent mode failure”就是由于young GC时“promotion failed”之后的Full GC导致的，而对象直接在年老代分配但老年代可用空间不够时，：</i></p>
+
+<pre><code>2017-07-13T21:37:21.616+0800: 2317149.720: [GC (Allocation Failure) 2017-07-13T21:37:21.616+0800: 2317149.721: [ParNew (promotion failed): 3774912K-&gt;3702108K(3774912K), 0.3012695 secs]2017-07-13T21:37:21.918+0800: 2317150.022: [CMS2017-07-13T21:37:21.929+0800: 2317150.034: [CMS-concurrent-abortable-preclean: 3.608/4.392 secs] [Times: user=0.00 sys=0.00, real=4.39 secs]
+ (concurrent mode failure): 5408872K-&gt;5935072K(6291456K), 2.6779990 secs] 8578988K-&gt;5935072K(10066368K), [Metaspace: 72542K-&gt;72542K(1116160K)], 2.9802519 secs] [Times: user=0.00 sys=0.00, real=2.98 secs]
+</code></pre>
+
+<p><i>如下日志：对象在年轻代分配但年轻代由于“悲观策略”并不真正执行而是直接触发一次Full GC。</i></p>
+
+<pre><code>2018-05-05T15:32:56.818+0800: 101200.681: [GC (Allocation Failure) 2018-05-05T15:32:56.819+0800: 101200.682: [ParNew: 5242832K-&gt;5242832K(5242880K), 0.0000388 secs]2018-05
+-05T15:32:56.819+0800: 101200.682: [CMS2018-05-05T15:32:56.873+0800: 101200.736: [CMS-concurrent-sweep: 0.212/0.240 secs] [Times: user=0.26 sys=0.00, real=0.23 secs]
+ (concurrent mode failure): 7033555K-&gt;7033541K(9437184K), 0.0766034 secs] 12276388K-&gt;12276374K(14680064K), [Metaspace: 75013K-&gt;75013K(1118208K)], 0.0777029 secs] [Times: user=0.00 sys=0.00, real=0.08 secs]
+</code></pre>
+
+<p><i>promotion failed也不一定会导致concurrent mode failure。如果当前CMS的background gc没有在执行的话就不会出现“concurrent mode failure”，而是显示Full GC。</i></p>
+
+<pre><code>2018-09-24T20:18:01.761+0800: 274170.361: [GC (Allocation Failure) 2018-09-24T20:18:01.762+0800: 274170.362: [ParNew: 6291456K-&gt;6291456K(7864320K), 0.0000411 secs] 18389797K-&gt;18389797K(20447232K), 0.0011756 secs] [Times: user=0.00 sys=0.00, real=0.00 secs]
+2018-09-24T20:18:01.763+0800: 274170.362: [Full GC (Allocation Failure) 2018-09-24T20:18:01.763+0800: 274170.363: [CMS: 12098341K-&gt;12111250K(12582912K), 6.4734175 secs] 18389797K-&gt;12111250K(20447232K), [Metaspace: 82207K-&gt;82207K(1124352K)], 6.4746029 secs] [Times: user=4.90 sys=1.03, real=6.48 secs]
+</code></pre>
+
+<h4 id="导致promotion-failed和concurrent-mode-failure的原因和解决方案">导致promotion failed和concurrent mode failure的原因和解决方案</h4>
+
+<h5 id="原因1-cms触发太晚">原因1：CMS触发太晚</h5>
+
+<h6 id="说明">说明</h6>
+
+<p>CMS的backgroup GC触发时机太晚，会导致在backgroup GC完成前，年老代剩余可用空间放不下新提升上来的或者直接在年老代分配的对象，从而触发Full GC并中断并发过程。</p>
+
+<h6 id="解决方案">解决方案</h6>
+
+<p>通过参数-XX:CMSInitiatingOccupancyFraction=N -XX:+UseCMSInitiatingOccupancyOnly -XX:CMSWaitDuration=M 调小，更早、更快触发年老代backgroup GC。<br />
+CMSInitiatingOccupancyFraction默认值是92%，CMS backgroup GC扫描间隔默认是：2000（2s）。<br />
+<em>但注意这里并不是调的越小越好，越小年老代GC频率会越高，整体业务暂停的时间有可能会更长。另外，某些情况下，该参数设置太小导致年老代空间触发backgroup GC前可用的空间根本放不下所有晋升上来的长生命周期的对象，从而导致JVM一直不停地做年老代GC，严重影响业务性能。</em></p>
+
+<h5 id="原因2-cms-gc回收处理效率太低">原因2：CMS GC回收处理效率太低</h5>
+
+<h6 id="说明-1">说明</h6>
+
+<p>CMS是一个并发的垃圾回收器，用于CMS各个阶段的GC线程数默认值是： ConcGCThreads = （ParallelGCThreads+3）/4。<br />
+而这里ParallelGCThreads表示的是GC并行时使用的线程数。比如如果新生代使用ParNew，那么ParallelGCThreads也就是新生代GC线程数。默认情况下，当CPU数量小于8时，ParallelGCThreads的值就是CPU的数量，当CPU数量大于8时，ParallelGCThreads的值等于3+5*cpuCount/8。<br />
+例如，在32核机器上，新生代并行GC线程数为 3 + 5*32/8 = 23，所以对应的CMS的并发线程数为 （23 +3） / 4 = 6。</p>
+
+<h6 id="解决方案-1">解决方案</h6>
+
+<p>通过参数 -XX:ParallelGCThreads和-XX：ConcGCThreads来分别增加年轻代GC并行处理和年老代GC并发处理的能力。但这里也并不是越大越好，因为CMS的很多阶段都是和业务线程并发进行的，如果用于GC的线程数太多也会更多抢占业务线程的处理时间片，从而影响业务性能，所以这里需要进行实际场景的验证测试。</p>
+
+<h5 id="原因3-年老代空间碎片太多">原因3:年老代空间碎片太多</h5>
+
+<h6 id="说明-2">说明</h6>
+
+<p>CMS收集器采用的标记-清除算法，并不对年老代进行回收后的内存整理（虽然GC后会进行一些连续空间的合并）。因此多次GC后会存在较多的空间碎片。所以可能导致年老代剩余空间足够，但在大对象提升时由于没有连续的可用空间导致提升失败。</p>
+
+<h6 id="解决方案-2">解决方案</h6>
+
+<p>通过-XX:+UseCMSCompactAtFullCollection和-XX:CMSFullGCsBeforeCompaction=n来让JVM在多少次Full GC后进行年老代空间的碎片整理。但是这两个参数起到的是”病后用药“的作用，前提是已经发生了Full GC才触发（所以有一些比较曲线救国的办法就是在凌晨低峰期间：代码中定时调用System.gc来触发一次Full GC从而进行年老代的空间整理）。如果碎片问题确实比较严重，可以考虑改用G1垃圾回收器（G1每次GC都会对region进行整理）。</p>
+
+<h5 id="原因4-年轻代提升速度过快">原因4：年轻代提升速度过快</h5>
+
+<h6 id="说明-3">说明</h6>
+
+<p>不管是promotion failed还是concurrent mode failure，都是由于提升时年老代可用空间不够导致的，因此提升速度过快是导致这些问题的直接原因。具体会导致提升过快的非业务原因有几点：<br />
+1. 年轻代对象晋升年龄阈值太小。<br />
+2. eden区太小，触发年轻代GC太容易。<br />
+3. survivor空间溢出（未满年龄的对象提前晋升，参考前面的Desired survivor size的计算）。<br />
+4. 业务中大对象较多，超过阈值直接在年老代中分配。</p>
+
+<h6 id="解决方案-3">解决方案</h6>
+
+<ol>
+<li>调整-XX:MaxTenuringThreshold（默认15），提高年轻代晋升年龄。<br />
+注意：这里并不代表真正达到这个年龄才晋升，但JVM计算一个desired survivor size大小，survivor区对象如果累计到某一个age值的对象大小大于desired survivor size，下次晋升时大于等于该年龄的对象就会被提前promote到年老代，这里这个age值就是动态计算出来的。<br /></li>
+<li>eden区和survior可用区默认比例是（8:1)，survior区分s0和s1两部分，同一时刻只有一个区可用。所以实际可用大小为xmn的1/10。一般可以通过扩大eden区来减少年轻代GC次数，让年轻代对象到达触发年龄的速度慢一点。调整eden去和survior比例使用： -XX:SurvivorRatio=N。<br /></li>
+<li>survivor空间溢出的直接原因是计算的Desired survivor size太小，导致很多未满年龄的对象提前晋升到年老代，可以通过降低-XX:TargetSurvivorRatio=N（默认50，就是一个s0或者s1的一半），尽量避免提前晋升的溢出问题。<br /></li>
+<li>针对大对象，可以通过-XX:PretenureSizeThreshold来设置直接在年老代分配的对象阈值，默认是0，即：由JVM动态决定（PS：这个参数尽量不要用，除非对自己的业务细节访问模型很清楚）。<br />
+<br /></li>
+</ol>
+
+<p><em>最后：如果以上调整都没办法彻底解决GC问题，那么应该考虑在系统内存可用范围内扩大整个heap的大小了。</em></p>
+
+<hr />
+
+<h4 id="延伸阅读-如何手动触发full-gc">延伸阅读：如何手动触发Full GC？</h4>
+
+<pre><code>没有开启-XX:+DisableExplicitGC的前提下调用System.gc()就会发生FullGC
+System.gc();
+</code></pre>
+
+<pre><code>或者通过jmap命令触发：
+jmap -histo:live pid
+</code></pre>
+
+<hr />
+
+<p>参考：<br />
+<a href="https://hllvm-group.iteye.com/group/topic/42365">HandlePromotionFailure</a><br />
+<a href="https://zhuanlan.zhihu.com/p/51469246">GC算法之三 标记-压缩算法</a></p>
+</div>
+
+  <footer class="article-footer">
+    
+    
+    
+    <section class="bordered">
+      <header>
+        <div class="panel-title">CATEGORIES</div>
+      </header>
+      <div>
+        <ul class="p-terms">
+          
+          <li><a href="https://coldwalker.com/categories/%E6%8A%80%E6%9C%AF/">技术</a></li>
+          
+        </ul>
+      </div>
+    </section>
+    
+    
+    
+    <section class="bordered">
+      <header>
+        <div class="panel-title">TAGS</div>
+      </header>
+      <div>
+        <ul class="p-terms">
+          
+          <li><a href="https://coldwalker.com/tags/gc/">GC</a></li>
+          
+          <li><a href="https://coldwalker.com/tags/java/">Java</a></li>
+          
+        </ul>
+      </div>
+    </section>
+    
+    
+  </footer>
+
+</article>
+
+    
+      
+      <div id="cyReward" role="cylabs" data-use="reward"></div>
+      <script src="//changyan.itc.cn/js/lib/jquery.js"></script>
+      <script src="//changyan.sohu.com/js/changyan.labs.https.js?appid=cytwFfxww"></script>
+      <div id="SOHUCS" sid="/2019/02//gc_problem_resolve/" ></div>
+      <script>
+      (function(){
+      var appid = 'cytwFfxww';
+      var conf = 'prod_36cf3e358f9305067d10b0652031cb07';
+      var width = window.innerWidth || document.documentElement.clientWidth;
+      if (width < 960) {
+      window.document.write('<script id="changyan_mobile_js" charset="utf-8" type="text/javascript" src="https://changyan.sohu.com/upload/mobile/wap-js/changyan_mobile.js?client_id=' + appid + '&conf=' + conf + '"><\/script>'); } else { var loadJs=function(d,a){var c=document.getElementsByTagName("head")[0]||document.head||document.documentElement;var b=document.createElement("script");b.setAttribute("type","text/javascript");b.setAttribute("charset","UTF-8");b.setAttribute("src",d);if(typeof a==="function"){if(window.attachEvent){b.onreadystatechange=function(){var e=b.readyState;if(e==="loaded"||e==="complete"){b.onreadystatechange=null;a()}}}else{b.onload=a}}c.appendChild(b)};loadJs("https://changyan.sohu.com/upload/changyan.js",function(){window.changyan.api.config({appid:appid,conf:conf})}); } })(); </script>
+      
+    
+
+   
+  </div>
+
+  <div class="col-md-4">
+    
+<aside class="l-sidebar">
+
+  <section class="panel panel-default">
+    <div class="panel-heading">
+      <div class="panel-title">LATESTS</div>
+    </div>
+    <div class="list-group">
+      
+      <a href="https://coldwalker.com/2019/02//gc_problem_resolve/" class="list-group-item">Java垃圾回收浅析(4)-GC常见问题分析</a>
+      
+      <a href="https://coldwalker.com/2019/02//gc_log_analyze/" class="list-group-item">Java垃圾回收浅析(3)-GC日志分析</a>
+      
+      <a href="https://coldwalker.com/2019/02//gc_intro/" class="list-group-item">Java垃圾回收浅析(2)-GC方式介绍</a>
+      
+      <a href="https://coldwalker.com/2019/02//gc_object_alloc_process/" class="list-group-item">Java垃圾回收浅析(1)-对象内存申请</a>
+      
+      <a href="https://coldwalker.com/2018/12//troubleshooter_directbytebuffer_memory_issue/" class="list-group-item">DirectByteBuffer堆外内存溢出问题排查</a>
+      
+      <a href="https://coldwalker.com/2018/08//troubleshooter_native_memory_increase/" class="list-group-item">Java堆外内存增长问题排查Case</a>
+      
+      <a href="https://coldwalker.com/2018/03//troubleshooter_stackoverflowerror/" class="list-group-item">一个StackOverFlowError问题引出的JVM栈内存管理</a>
+      
+      <a href="https://coldwalker.com/2018/03//robust-service_hystrix/" class="list-group-item">服务稳定性提升之-熔断组件Hystrix</a>
+      
+      <a href="https://coldwalker.com/2018/03//troubleshooter_btrace01/" class="list-group-item">问题排查利器之-JVM动态追踪工具BTrace</a>
+      
+      <a href="https://coldwalker.com/2018/03//about/" class="list-group-item">About</a>
+      
+    </div>
+  </section>
+  
+  <section class="panel panel-default">
+    <div class="panel-heading">
+      
+      <div class="panel-title">CATEGORY</div>
+    </div>
+    <div class="list-group">
+      
+      <a href="https://coldwalker.com/categories/%E6%8A%80%E6%9C%AF" class="list-group-item">技术(9)</a>
+      
+      <a href="https://coldwalker.com/categories/%E6%84%9F%E6%82%9F" class="list-group-item">感悟(1)</a>
+      
+      <a href="https://coldwalker.com/categories/%E7%94%9F%E6%B4%BB" class="list-group-item">生活(1)</a>
+      
+    </div>
+  </section>
+  
+  <section class="panel panel-default">
+    <div class="panel-heading">
+      
+      <div class="panel-title">TAG</div>
+    </div>
+    <div class="list-group">
+      
+      <a href="https://coldwalker.com/tags/java" class="list-group-item">Java(9)</a>
+      
+      <a href="https://coldwalker.com/tags/gc" class="list-group-item">Gc(4)</a>
+      
+      <a href="https://coldwalker.com/tags/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5" class="list-group-item">问题排查(4)</a>
+      
+      <a href="https://coldwalker.com/tags/jvm" class="list-group-item">Jvm(3)</a>
+      
+      <a href="https://coldwalker.com/tags/netflix" class="list-group-item">Netflix(1)</a>
+      
+      <a href="https://coldwalker.com/tags/%E5%BC%80%E6%BA%90%E7%BB%84%E4%BB%B6" class="list-group-item">开源组件(1)</a>
+      
+      <a href="https://coldwalker.com/tags/%E6%9C%8D%E5%8A%A1%E7%A8%B3%E5%AE%9A%E6%80%A7" class="list-group-item">服务稳定性(1)</a>
+      
+    </div>
+  </section>
+  
+ 
+  
+  <section class="panel panel-default">
+    <div class="panel-heading">
+      <div class="panel-title">Archive</div>
+    </div>
+    
+      
+    <div class="list-group">
+      <a href="https://coldwalker.com/post/#2019-02" class="list-group-item">2019-02(5)</a>
+    
+      
+    <div class="list-group">
+      <a href="https://coldwalker.com/post/#2018-12" class="list-group-item">2018-12(1)</a>
+    
+      
+    <div class="list-group">
+      <a href="https://coldwalker.com/post/#2018-08" class="list-group-item">2018-08(1)</a>
+    
+      
+    <div class="list-group">
+      <a href="https://coldwalker.com/post/#2018-03" class="list-group-item">2018-03(4)</a>
+    
+    </div>
+  </section>
+  
+</aside>
+
+
+  </div>
+</div>
+
+      </div>
+    </main>
+
+    <footer class="l-footer">
+      <div class="container">
+        <p>© This post is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License，please give source if you wish to quote or reproduce.</p>
+        
+      </div>
+    </footer>
+
+    <script src="//code.jquery.com/jquery-3.1.1.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </body>
+</html>
+

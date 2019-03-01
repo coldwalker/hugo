@@ -15,11 +15,11 @@
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/solarized_dark.min.css">
     <link rel="stylesheet" href="https://coldwalker.com/css/search.css" />
-    <title>Java垃圾回收浅析1-对象内存申请 - 凛冬夜行</title>
+    <title>Java垃圾回收浅析(1)-对象内存申请 - 凛冬夜行</title>
     
 <meta name="description" content="Java虚拟机内存管理 和C/C&#43;&#43;语言不同，Java通过虚拟机来对内存进行自动管理，避免了手动申请和释放内存的繁琐以及容易出错的问题，Jav">
 
-<meta property="og:title" content="Java垃圾回收浅析1-对象内存申请 - 凛冬夜行">
+<meta property="og:title" content="Java垃圾回收浅析(1)-对象内存申请 - 凛冬夜行">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://coldwalker.com/2019/02//gc_object_alloc_process/">
 <meta property="og:image" content="https://coldwalker.com/images/gc_object_alloc_process/yurenmatou.jpg">
@@ -30,7 +30,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="凛冬夜行">
 <meta name="twitter:url" content="https://coldwalker.com/2019/02//gc_object_alloc_process/">
-<meta name="twitter:title" content="Java垃圾回收浅析1-对象内存申请 - 凛冬夜行">
+<meta name="twitter:title" content="Java垃圾回收浅析(1)-对象内存申请 - 凛冬夜行">
 <meta name="twitter:description" content="Java虚拟机内存管理 和C/C&#43;&#43;语言不同，Java通过虚拟机来对内存进行自动管理，避免了手动申请和释放内存的繁琐以及容易出错的问题，Jav">
 <meta name="twitter:image" content="https://coldwalker.com/images/gc_object_alloc_process/yurenmatou.jpg">
 
@@ -43,7 +43,7 @@
       "@type": "WebPage",
       "@id":"https://coldwalker.com/"
     },
-    "headline": "Java垃圾回收浅析1-对象内存申请 - 凛冬夜行",
+    "headline": "Java垃圾回收浅析(1)-对象内存申请 - 凛冬夜行",
     "image": {
       "@type": "ImageObject",
       "url": "https://coldwalker.com/images/gc_object_alloc_process/yurenmatou.jpg",
@@ -200,7 +200,7 @@ autocomplete('#aa-search-input',
         
         <li itemscope="" itemtype="http://data-vocabulary.org/Breadcrumb"><a href="https://coldwalker.com/post/" itemprop="url"><span itemprop="title">post</span></a></li>
         
-        <li class="active">Java垃圾回收浅析1-对象内存申请</li>
+        <li class="active">Java垃圾回收浅析(1)-对象内存申请</li>
       </ol>
     </nav>
 
@@ -212,7 +212,7 @@ autocomplete('#aa-search-input',
       
     </ul>
 
-    <h1 class="title">Java垃圾回收浅析1-对象内存申请</h1>
+    <h1 class="title">Java垃圾回收浅析(1)-对象内存申请</h1>
   </header>
 
   <div class="thumb" style="background-image: url(https://coldwalker.com/images/gc_object_alloc_process/yurenmatou.jpg);"></div>
@@ -515,13 +515,13 @@ class User {
     </div>
     <div class="list-group">
       
-      <a href="https://coldwalker.com/2019/02//gc_problem_resolve/" class="list-group-item">Java垃圾回收浅析4-GC常见问题分析</a>
+      <a href="https://coldwalker.com/2019/02//gc_problem_resolve/" class="list-group-item">Java垃圾回收浅析(4)-GC常见问题分析</a>
       
-      <a href="https://coldwalker.com/2019/02//gc_log_analyze/" class="list-group-item">Java垃圾回收浅析3-GC日志分析</a>
+      <a href="https://coldwalker.com/2019/02//gc_log_analyze/" class="list-group-item">Java垃圾回收浅析(3)-GC日志分析</a>
       
-      <a href="https://coldwalker.com/2019/02//gc_intro/" class="list-group-item">Java垃圾回收浅析2-GC方式介绍</a>
+      <a href="https://coldwalker.com/2019/02//gc_intro/" class="list-group-item">Java垃圾回收浅析(2)-GC方式介绍</a>
       
-      <a href="https://coldwalker.com/2019/02//gc_object_alloc_process/" class="list-group-item">Java垃圾回收浅析1-对象内存申请</a>
+      <a href="https://coldwalker.com/2019/02//gc_object_alloc_process/" class="list-group-item">Java垃圾回收浅析(1)-对象内存申请</a>
       
       <a href="https://coldwalker.com/2018/12//troubleshooter_directbytebuffer_memory_issue/" class="list-group-item">DirectByteBuffer堆外内存溢出问题排查</a>
       
