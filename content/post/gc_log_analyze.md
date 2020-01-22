@@ -173,7 +173,7 @@ Desired survivor size 107347968 bytes, new threshold 4 (max 4)
 ```
 <i>2018-11-23T18:46:17.371向Eden申请内存时失败触发了young GC， Allocation Failure表明了GC原因是分配失败导致的，如果是通过System.gc手动触发的这里会标明：System gc。</i>
 
-<i>2018-11-23T18:46:17.374 young GC开始，采用ParNew回收器；期望survivor区实际占用的大小为 107347968 bytes；根据当次回收后survivor区中各年代的对象分布情况重新计算提升到老年代的年代阈值为4；各年代对象在本次回收后的分布情况如上所示；本次GC后整个年轻代占用堆内存从1761920K下降到28586K（总年轻代大小为1887488K *即eden区 + 一个survivor区*）;整个堆的空间占用大小从1959490K下降到229493K（整个堆大小为10276096K），这里可以计算出本次GC由年轻代提升到年老代的对象大小为：(1761920K - 28586K) - (1959490K - 229493K) = 3337K。本次GC过程花了0.0802897 secs，其中使用在用户空间的时间为0.40 secs，使用在系统空间的时间为0 secs，实际真实使用的时间是0.08 secs（这里也能看出使用了并发收集器，所以用户空间的时间比实际时间要大很多，因为它是多个cpu的时间片累加的），由于Minor GC是会STW的，所以业务线程在这次GC时也暂停了80ms（这个可以从这次GC紧随着的Total time for which application threads were stopped里看出来）。</i>
+<i>2018-11-23T18:46:17.374 young GC开始，采用ParNew回收器；期望survivor区实际占用的大小为 107347968 bytes；根据当次回收后survivor区中各年代的对象分布情况（年代信息在每个对象头里存储）重新计算提升到老年代的年代阈值为4；各年代对象在本次回收后的分布情况如上所示；本次GC后整个年轻代占用堆内存从1761920K下降到28586K（总年轻代大小为1887488K *即eden区 + 一个survivor区*）;整个堆的空间占用大小从1959490K下降到229493K（整个堆大小为10276096K），这里可以计算出本次GC由年轻代提升到年老代的对象大小为：(1761920K - 28586K) - (1959490K - 229493K) = 3337K。本次GC过程花了0.0802897 secs，其中使用在用户空间的时间为0.40 secs，使用在系统空间的时间为0 secs，实际真实使用的时间是0.08 secs（这里也能看出使用了并发收集器，所以用户空间的时间比实际时间要大很多，因为它是多个cpu的时间片累加的），由于Minor GC是会STW的，所以业务线程在这次GC时也暂停了80ms（这个可以从这次GC紧随着的Total time for which application threads were stopped里看出来）。</i>
 
 ##### 详细说一下Desired survivor size和new threshold
 ```
@@ -282,7 +282,7 @@ CMS的并发标记采用的是第一种：Incremental update（增量更新）�
 JVM提供了两种数据结构来对增量GC的并发标记过程中发生变化的对象进行记录，第一种是Card Table；第二种是Mod Union Table。
 
 * CardTable介绍
-为了提升垃圾回收效率，JVM将内存分成一个个固定大小的Card（一般4K），通过一个专门的数据结构Card Table来维护每个Card的状态（其实就是单字节的数组），一个字节对应一个Card，当一个Card上的引用发生变化时，JVM会将这个Card对应的Card Table标记为dirty（标记在引用变化的出发端point-out），具体实现是JVM在对象引用赋值的指令集插入一个write barrier，暂时中断来更新Card Table。
+为了提升垃圾回收效率，JVM将内存分成一个个固定大小的Card（一般4K），通过一个专门的数据结构Card Table来维护每个Card的状态（其实就是单字节的数组），一个字节对应一个Card，当一个Card上的引用发生变化时，JVM会将这个Card对应的Card Table标记为dirty（标记在引用变化的出发端point-out），具体实现是JVM在对象引用赋值的指令集插入一个post write barrier，暂时中断来更新Card Table。
 
 * CardTable作用
 1. 比如Young GC时，由于年老代中指向年轻代的这些对象也需要作为GC Roots来进行标记，因此就可以通过扫描这个Card Table知道上一次Young GC后哪些年老代对象发生了引用变化，只需要扫描这些变化的Card的对象即可，不需要扫描整个年老代了。
@@ -293,12 +293,27 @@ JVM提供了两种数据结构来对增量GC的并发标记过程中发生变化
 实际上Card Table并不区分发生引用变化的对象所属的年代，而是记录所有发生了变化的引用的出发端，无论在old还是young。所以如果在并发标记期间发生了Young GC，Young GC时扫描Card Table中从年老代到年轻代引用发生了变化的这些年老代对象，如果某个Card没有到年轻代的引用了，那么Young GC会把这个Card从Dirty标记为Clean，由于并发标记阶段是可以和Young GC并发执行的，这样可能会把在并发标记期间old GC已经标记为Dirty的Card（比如这个Card在并发标记期间引用其他年老代对象发生了变化）重置成Clean了，这样就会出现对象“漏标”的情况，导致不该被回收的对象被回收了。为了解决这个问题，JVM在old GC还提供了一个Mod Union Table的BitMap的结构（一个bit对应一个Card），在并发标记阶段，如果发生Young GC需要将某些年老代Card对应的CardTable重置的时候，就会更新Mod Union Table里这个Card对应的Bit为dirty状态。这样在后续处理阶段可以通过遍历Card Table和Mod Union Table那些dirty的Card来获取并发阶段年老代所有的引用变化了。
     
 ###### 2. G1的实现方式（SATB Snapshot-At-The-Beginning）
-Incremental update的实现是通过“打破第一个条件（引用关系的插入）”来保证不“漏标”，而SATB是通过“打破第二个条件（引用关系的删除）来”实现的。SATB利用write barrier将所有即将被删除的引用关系的旧引用记录下来，最后以这些旧引用为根STW地重新扫描一遍即可避免漏标问题。 
+Incremental update的实现是通过“打破第一个条件（引用关系的插入）”来保证不“漏标”，而SATB是通过“打破第二个条件（引用关系的删除）来”实现的。SATB利用pre write barrier将所有即将被删除的引用关系的旧引用记录下来，最后以这些旧引用为根STW地重新扫描一遍即可避免漏标问题。 
 
-*G1并发标记过程使用SATB的3个步骤：*
-1. 在开始标记的时候生成一个快照图标记存活对象(Snapshot)。
-2. 在并发标记的时候所有被改变的对象入队（在write barrier里把所有旧的引用所指向的对象都变成grey对象）
+*G1并发标记过程使用SATB的步骤：*
+1. 由于G1采用的是"复制"算法，所以每一个region里的内存都是整齐的，并发标记阶段开始时记录下当前region分配位置的指针TAMS（top-at-mark-start），并发标记过程中在此指针后分配的对象都被标记为"隐式已标记对象"，所以这些新对象都能活过这一次GC。
+2. 并发标记过程中在mutator并发覆盖某些字段引用值的时候通过pre write barrier在覆盖前记录旧的引用对象到一个satb_mark_queue的队列（每个java线程一个队列），在下一轮并发标记或者最终标记的时候会去检查并处理这个队列的对象进行递归标记，通过这种方式实现了类似"并发标记开始时快照"的效果。
 
+```
+G1的concurrent marking用了两个bitmap： 
+ 一个prevBitmap记录第n-1轮concurrent marking所得的对象存活状态。由于第n－1轮concurrent marking已经完成，这个bitmap的信息可以直接使用。 
+ 一个nextBitmap记录第n轮concurrent marking的结果。这个bitmap是当前将要或正在进行的concurrent marking的结果，尚未完成，所以还不能使用。 
+ 
+ 对应的，每个region都有这么几个指针： 
+ |<-- (1) -->|<-- (2) -->|<-- (3) -->|<-- (4) -->|
+ bottom      prevTAMS    nextTAMS    top         end
+ 
+ >其中top是该region的当前分配指针，[bottom, top)是当前该region已用（used）的部分，[top, end)是尚未使用的可分配空间（unused）。 
+ (1): [bottom, prevTAMS): 这部分里的对象存活信息可以通过prevBitmap来得知 
+ (2): [prevTAMS, nextTAMS): 这部分里的对象在第n-1轮concurrent marking是隐式存活的 
+ (3): [nextTAMS, top): 这部分里的对象在第n轮concurrent marking是隐式存活的
+```
+ 
 ###### 思考：Incremental update和SATB存在的一些问题？
 * 浮动垃圾（floating garbage）
 不管是Incremental update还是SATB，关注点还是在“保证不被漏标”，而不是“保证不被错标”，因此会存在“原本应该被回收的对象没有被回收掉”的浮动垃圾问题。如Incremental update导致浮动垃圾的一些情况：
@@ -310,7 +325,29 @@ Incremental update的实现是通过“打破第一个条件（引用关系的�
 
 >但是HotSpot VM只使用了old gen部分的card table，也就是说只关心old -> ?的引用。这是因为一般认为young gen的引用变化率（mutation rate）非常高，其对应的card table部分可能大部分都是dirty的，要把young gen当作root的时候与其扫描card table还不如直接扫描整个young gen。 
 
+_对于CMS GC来说，remark阶段由于以下原因需要重新扫描young区和所有GC ROOTS：_
+1. 由于young区变化太快，重新扫描card table里的记录的变更和整体重新扫一遍young区没区别。
+2. 由于CMS采用的是post write barrier，只记录变更后的新插入引用，而且类似"给局部变量赋值"的astore指令并没有write barrier，会存在栈上对象漏标的情况，因此还需要遍历整个GC ROOTS。
 
+_对于G1的remark阶段为什么不需要遍历young区和GC ROOTS，也不用遍历所有old regions的原因：_
+1. 由于G1采用的SATB的快照方式来记录并发标记期间的所有引用覆盖行为，因此并发过程中不会出现"灰对象删除对白对象的引用后导致白对象可能被漏标"的情况。
+2. G1采用TAMS指针保证并发期间所有新产生的对象都会被标记到。
+3. 通过remember set来记录哪些region引用到了本region，只需要扫描这些region里的card table，避免遍历所有region。YGC时只需要选取young regions的RSet作为根集进行遍历；Mixed GC时也只需要选择CSet（Collection Set 被选取回收的regions）里的regions的RSet作为根集进行遍历。
+
+```
+"Points-into" remembered set 
+
+G1 GC的heap与HotSpot VM的其它GC一样有一个覆盖整个heap的card table。 
+逻辑上说，G1 GC的remembered set（下面简称RSet）是每个region有一份。这个RSet记录的是从别的region指向该region的card。所以这是一种“points-into”的remembered set。 
+
+用card table实现的remembered set通常是points-out的，也就是说card table要记录的是从它覆盖的范围出发指向别的范围的指针。以分代式GC的card table为例，要记录old -> young的跨代指针，被标记的card是old gen范围内的。 
+
+G1 GC则是在points-out的card table之上再加了一层结构来构成points-into RSet：每个region会记录下到底哪些别的region有指向自己的指针，而这些指针分别在哪些card的范围内。 
+这个RSet其实是一个hash table，key是别的region的起始地址，value是一个集合，里面的元素是card table的index。 
+
+举例来说，如果region A的RSet里有一项的key是region B，value里有index为1234的card，它的意思就是region B的一个card里有引用指向region A。所以对region A来说，该RSet记录的是points-into的关系；而card table仍然记录了points-out的关系。 
+
+```
 
 * 第三阶段：concurrent-preclean（并发预清理）
 ```
@@ -398,7 +435,11 @@ Times: user=0.41 sys=0.26, real=0.10 secs： 整个墙钟耗时100ms
 2018-01-28T13:01:18.831+0800: 438747.198: [CMS-concurrent-sweep: 0.296/0.296 secs] [Times: user=0.33 sys=0.39, real=0.29 secs]
 ```
 
-这个阶段主要是对没有被标记的垃圾对象进行并发清理，真正的清理回收内存，也就是将“没有被标记的对象”占用的内存还回到freelist，过程中如果碰到回收多个连续内存块时还会做一些合并工作（一定程度上缓解了CMS的碎片化问题）。这个阶段是和业务线程并发执行的，执行的时候会hold住freelistLock，保证执行过程中不会有新的对象会被分配在老年代里，这样年轻代GC其实这时是也是无法执行的（无法向老年代promote）。这样就保证了并发清理这个过程中不会出现“新产生对象”被漏标的情况。
+这个阶段主要是对没有被标记的垃圾对象进行并发清理，真正的清理回收内存，也就是将“没有被标记的对象”占用的内存还回到freelist，过程中如果碰到回收多个连续内存块时还会做一些合并工作（一定程度上缓解了CMS的碎片化问题）。这个阶段是和业务线程并发执行的，执行的时候会hold住freelistLock，保证执行过程中不会有新的对象会被分配在老年代里，这样年轻代GC其实这时是也是无法执行的（无法向老年代promote）。
+
+_Q&A：并发清除阶段是可以和应用并发执行的，如果在这个阶段发生新的对象引用变化，如何保证不发生"错误回收"？_
+<i>1. 由于remark阶段已经完成了整个老年代所有对象"存活"与否的判断，在这个阶段不可能存在"死对象被重新引用复活"的情况，因为"死对象"肯定代码里已经无法触达了。
+2. 在整个CMS的收集阶段所有新创建的对象都是黑色的，因此能保证此轮GC这些新对象都能存活。（貌似Hotspot的实现是通过freelistLock来保证这个阶段老年代不会发生对象分配。）
 
 ```
 void CMSCollector::sweepWork(ConcurrentMarkSweepGeneration* gen,
