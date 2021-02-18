@@ -13,7 +13,7 @@ _具体现象是：机器内存32G，堆内存设置Xmx 20G，服务启动后发
 
 ![66458b4ec3bec765a54684e358df147c.png](/images/troubleshooter_directbytebuffer_memory_issue/7F005065-9886-42D7-B474-6A221A4A20CB.png)
 
-因为以前也分析过一个“由于glibc的ptmalloc2内存分配机制缺陷”导致堆外内存溢出的问题（具体可移步[Java堆外内存增长问题排查Case](https://coldwalker.com/2018/08//troubleshooter_native_memory_increase/))，但出问题的业务已经优化过arena内存池参数，排除了这一块的嫌疑，因此具体原因还需要另做分析。
+因为以前也分析过一个“由于glibc的ptmalloc2内存分配机制缺陷”导致堆外内存溢出的问题（具体可移步[Java堆外内存增长问题排查Case](https://coldwalker.github.io/2018/08//troubleshooter_native_memory_increase/))，但出问题的业务已经优化过arena内存池参数，排除了这一块的嫌疑，因此具体原因还需要另做分析。
 
 ### 排查过程
 
@@ -495,7 +495,7 @@ SELECT k, k.capacity, k.limit FROM java.nio.DirectByteBuffer k WHERE (inbounds(k
 ![e272ee50f2abb9b5d929a88239bbc34b.png](/images/troubleshooter_directbytebuffer_memory_issue/031C43EE-ACAA-4CDF-8B59-45C77055DC21.png)
 
 #### 8. Btrace跟踪DirectByteBuffer的堆外内存申请路径
-当有申请请求时，通过btrace把线程栈打出来，定位调用源头。btrace的使用方法在这里不细说，可以参考之前写的关于btrace的文章[问题排查利器之-JVM动态追踪工具BTrace](https://coldwalker.com/2018/03//troubleshooter_btrace01/)。
+当有申请请求时，通过btrace把线程栈打出来，定位调用源头。btrace的使用方法在这里不细说，可以参考之前写的关于btrace的文章[问题排查利器之-JVM动态追踪工具BTrace](https://coldwalker.github.io/2018/03//troubleshooter_btrace01/)。
 ```
 import com.sun.btrace.annotations.*;
 import static com.sun.btrace.BTraceUtils.*;

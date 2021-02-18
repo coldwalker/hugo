@@ -1,4 +1,4 @@
-baseURL = "https://coldwalker.com/"
+baseURL = "https://coldwalker.github.io/"
 languageCode = "zh-CN"
 title = "凛冬夜行"
 theme="hugo_theme_beg"

@@ -7,7 +7,7 @@ thumbnail: "images/gc_problem_resolve/yinxing.jpg"
 draft: false
 ---
 ### 常见的几种GC问题
-回顾一下：上面几篇先讲到了[java对象内存分配过程](https://coldwalker.com/2019/02//gc_object_alloc_process/)、然后总结了[几种GC方式和常见的GC算法原理](https://coldwalker.com/2019/02//gc_intro/)，也基本了解了[GC日志怎么看](https://coldwalker.com/2019/02//gc_log_analyze/)，接下来该是解决问题的时候了，本文会结合GC日志分析几种比较常见的GC问题，从问题引发原因到具体解决方案，希望能从中有所收获！
+回顾一下：上面几篇先讲到了[java对象内存分配过程](https://coldwalker.github.io/2019/02//gc_object_alloc_process/)、然后总结了[几种GC方式和常见的GC算法原理](https://coldwalker.github.io/2019/02//gc_intro/)，也基本了解了[GC日志怎么看](https://coldwalker.github.io/2019/02//gc_log_analyze/)，接下来该是解决问题的时候了，本文会结合GC日志分析几种比较常见的GC问题，从问题引发原因到具体解决方案，希望能从中有所收获！
 
 #### 定位GC日志中STW时间较长的行为
 打印所有STW停顿：
