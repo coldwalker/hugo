@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on 凛冬夜行</title>
+    <link>https://coldwalker.github.io/post/</link>
+    <description>Recent content in Posts on 凛冬夜行</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <copyright>© This post is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License，please give source if you wish to quote or reproduce.</copyright>
+    <lastBuildDate>Wed, 22 May 2024 12:00:00 +0800</lastBuildDate>
+    <atom:link href="https://coldwalker.github.io/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>关于MTU探测的一些细节</title>
+      <link>https://coldwalker.github.io/2024/05/mtu_probe_details/</link>
+      <pubDate>Wed, 22 May 2024 12:00:00 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2024/05/mtu_probe_details/</guid>
+      <description>好久没有更新博客了，由于工作内容的调整，所负责的服务更多需要面向用户侧网络来推进，由于公网链路的复杂性，各种奇怪的网络问题也陆续接触到，抽空</description>
+    </item>
+    <item>
+      <title>记log4j打印异常日志导致线程阻塞的问题排查</title>
+      <link>https://coldwalker.github.io/2020/01/log4j-thread-blocked-issue/</link>
+      <pubDate>Wed, 22 Jan 2020 12:00:00 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2020/01/log4j-thread-blocked-issue/</guid>
+      <description>最近线上一个服务偶发单机接口耗时飙升的现象，伴随着内存使用增长并出现吃swap的情况，16核的系统load也飙升到50以上，IOUtil接近</description>
+    </item>
+    <item>
+      <title>Java垃圾回收浅析(4)-GC常见问题分析</title>
+      <link>https://coldwalker.github.io/2019/02/gc_problem_resolve/</link>
+      <pubDate>Wed, 27 Feb 2019 11:00:00 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2019/02/gc_problem_resolve/</guid>
+      <description>常见的几种GC问题 回顾一下：上面几篇先讲到了java对象内存分配过程、然后总结了几种GC方式和常见的GC算法原理，也基本了解了GC日志怎么看</description>
+    </item>
+    <item>
+      <title>Java垃圾回收浅析(3)-GC日志分析</title>
+      <link>https://coldwalker.github.io/2019/02/gc_log_analyze/</link>
+      <pubDate>Mon, 25 Feb 2019 16:00:00 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2019/02/gc_log_analyze/</guid>
+      <description>控制GC日志打印的常用配置项 -XX:+PrintGCDetails 启用详细GC日志模式。和-XX:+PrintGC的普通日志模式相比，详细日志模式会把：使用的垃圾回收器、整个堆</description>
+    </item>
+    <item>
+      <title>Java垃圾回收浅析(2)-GC方式介绍</title>
+      <link>https://coldwalker.github.io/2019/02/gc_intro/</link>
+      <pubDate>Tue, 19 Feb 2019 17:00:00 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2019/02/gc_intro/</guid>
+      <description>为什么需要GC？ 当程序创建对象、数组等引用类型实体时，系统都会在堆内存中为之分配一块内存区，对象就保存在这块内存区中，当这块内存不再被任何引</description>
+    </item>
+    <item>
+      <title>Java垃圾回收浅析(1)-对象内存申请</title>
+      <link>https://coldwalker.github.io/2019/02/gc_object_alloc_process/</link>
+      <pubDate>Thu, 14 Feb 2019 15:40:00 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2019/02/gc_object_alloc_process/</guid>
+      <description>Java虚拟机内存管理 和C/C++语言不同，Java通过虚拟机来对内存进行自动管理，避免了手动申请和释放内存的繁琐以及容易出错的问题，Jav</description>
+    </item>
+    <item>
+      <title>DirectByteBuffer堆外内存溢出问题排查</title>
+      <link>https://coldwalker.github.io/2018/12/troubleshooter_directbytebuffer_memory_issue/</link>
+      <pubDate>Mon, 03 Dec 2018 11:30:00 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2018/12/troubleshooter_directbytebuffer_memory_issue/</guid>
+      <description>前情提要 最近线上一个图片服务在使用ehcache的diskcache替代旧版“自实现”的磁盘缓存时，发生了java进程常驻内存暴涨导致部署机</description>
+    </item>
+    <item>
+      <title>Java堆外内存增长问题排查Case</title>
+      <link>https://coldwalker.github.io/2018/08/troubleshooter_native_memory_increase/</link>
+      <pubDate>Wed, 15 Aug 2018 16:30:00 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2018/08/troubleshooter_native_memory_increase/</guid>
+      <description>最近排查一个线上java服务常驻内存异常高的问题，大概现象是：java堆Xmx配置了8G，但运行一段时间后常驻内存RES从5G逐渐增长到13</description>
+    </item>
+    <item>
+      <title>StackOverFlowError问题引出的JVM栈内存管理</title>
+      <link>https://coldwalker.github.io/2018/03/troubleshooter_stackoverflowerror/</link>
+      <pubDate>Wed, 21 Mar 2018 16:51:44 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2018/03/troubleshooter_stackoverflowerror/</guid>
+      <description>&lt;p&gt;最近项目中在使用javacv时在加载jar中的so共享链接库时出现了StackOverFlowError，最终原因是由于jvm启动时指定的最大栈内存Xss的大小不够，从而导致线程栈溢出。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>服务稳定性提升之-熔断组件Hystrix</title>
+      <link>https://coldwalker.github.io/2018/03/robust-service_hystrix/</link>
+      <pubDate>Wed, 21 Mar 2018 15:43:14 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2018/03/robust-service_hystrix/</guid>
+      <description>&lt;p&gt;Hystrix是netflix公司开源的一个通用系统保护框架，提供服务对远程依赖的快速失败机制、requestCache支持、请求合并能力等。目前通讯这边已经大范围使用，并结合profile日志进行了一些简单的定制化，目前使用情况看，实用性和稳定性比较出色，接入成本也较低。有兴趣的组可以参考以下范例尝试接入使用。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>问题排查利器之-JVM动态追踪工具BTrace</title>
+      <link>https://coldwalker.github.io/2018/03/troubleshooter_btrace01/</link>
+      <pubDate>Tue, 20 Mar 2018 14:18:25 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2018/03/troubleshooter_btrace01/</guid>
+      <description>&lt;p&gt;很多时候怀疑线上运行的代码有问题但又苦于日志打的不够详细的时候，BTrace作为基于ASM实现的代码动态跟踪工具能很快排上用场，在不需要重启java进程的情况下，通过脚本动态切入到嫌疑代码块，快速定位问题。&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>About</title>
+      <link>https://coldwalker.github.io/2018/03/about/</link>
+      <pubDate>Sat, 10 Mar 2018 15:05:30 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2018/03/about/</guid>
+      <description>&lt;p&gt;The time is always right to do what is right. &lt;br&gt;&#xA;在追求真相和美好的道路上蜗行~   &lt;br&gt;&#xA;微博@： &lt;a href=&#34;https://weibo.com/u/1243432494&#34;&gt;V武林&lt;/a&gt;&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

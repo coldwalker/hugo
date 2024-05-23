@@ -2,7 +2,7 @@
 
 {{ define "main" }}
 <div class="row">
-  <div class="col-md-8">
+  <div class="col-md-9">
 
     {{ if not .IsHome }}
     <header class="page-header">
@@ -11,14 +11,14 @@
     {{ end }}
 
     <ul class="p-articles">
-      {{ range (.Paginate .Data.Pages).Pages }}
+      {{ range .Paginator.Pages }}
       <li>{{ .Render "li" }}</li>
       {{ end }}
     </ul>
 
     {{ partial "pagination.html" . }}
   </div>
-  <div class="col-md-4">
+  <div class="col-md-3">
     {{ partial "sidebar.html" . }}
   </div>
 </div>

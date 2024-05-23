@@ -4,5 +4,6 @@ date: 2018-03-10T15:05:30+08:00
 categories: ["生活","感悟"]
 draft: false
 ---
-码农一枚，术业无专攻，啥都爱瞎看看，弄了个博客记录下折腾过的一些事，主要是年纪大了容易忘事[捂脸]，如果你对我的博客内容印象不错欢迎“恶意扩散”，如果要diss我请移步我的微博！
+The time is always right to do what is right.    
+在追求真相和美好的道路上蜗行~      
 微博@： [V武林](https://weibo.com/u/1243432494) <!--more-->

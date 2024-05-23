@@ -7,7 +7,7 @@
 
 {{ define "main" }}
 <div class="row">
-  <div class="col-md-8">
+  <div class="col-md-9">
 
     <nav class="p-crumb">
       <ol class="breadcrumb">
@@ -25,7 +25,7 @@
       <div id="cyReward" role="cylabs" data-use="reward"></div>
       <script src="//changyan.itc.cn/js/lib/jquery.js"></script>
       <script src="//changyan.sohu.com/js/changyan.labs.https.js?appid={{ .Site.Params.changyanId }}"></script>
-      <div id="SOHUCS" sid="{{ .URL }}" ></div>
+      <div id="SOHUCS" sid="{{ .Permalink }}" ></div>
       <script>
       (function(){
       var appid = '{{ .Site.Params.changyanId }}';
@@ -40,7 +40,7 @@
    <!--  {{ template "_internal/disqus.html" . }} -->
   </div>
 
-  <div class="col-md-4">
+  <div class="col-md-3">
     {{ partial "sidebar.html" . }}
   </div>
 </div>

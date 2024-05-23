@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>JVM on 凛冬夜行</title>
+    <link>https://coldwalker.github.io/tags/jvm/</link>
+    <description>Recent content in JVM on 凛冬夜行</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <copyright>© This post is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License，please give source if you wish to quote or reproduce.</copyright>
+    <lastBuildDate>Mon, 03 Dec 2018 11:30:00 +0800</lastBuildDate>
+    <atom:link href="https://coldwalker.github.io/tags/jvm/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>DirectByteBuffer堆外内存溢出问题排查</title>
+      <link>https://coldwalker.github.io/2018/12/troubleshooter_directbytebuffer_memory_issue/</link>
+      <pubDate>Mon, 03 Dec 2018 11:30:00 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2018/12/troubleshooter_directbytebuffer_memory_issue/</guid>
+      <description>前情提要 最近线上一个图片服务在使用ehcache的diskcache替代旧版“自实现”的磁盘缓存时，发生了java进程常驻内存暴涨导致部署机</description>
+    </item>
+    <item>
+      <title>Java堆外内存增长问题排查Case</title>
+      <link>https://coldwalker.github.io/2018/08/troubleshooter_native_memory_increase/</link>
+      <pubDate>Wed, 15 Aug 2018 16:30:00 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2018/08/troubleshooter_native_memory_increase/</guid>
+      <description>最近排查一个线上java服务常驻内存异常高的问题，大概现象是：java堆Xmx配置了8G，但运行一段时间后常驻内存RES从5G逐渐增长到13</description>
+    </item>
+    <item>
+      <title>StackOverFlowError问题引出的JVM栈内存管理</title>
+      <link>https://coldwalker.github.io/2018/03/troubleshooter_stackoverflowerror/</link>
+      <pubDate>Wed, 21 Mar 2018 16:51:44 +0800</pubDate>
+      <guid>https://coldwalker.github.io/2018/03/troubleshooter_stackoverflowerror/</guid>
+      <description>&lt;p&gt;最近项目中在使用javacv时在加载jar中的so共享链接库时出现了StackOverFlowError，最终原因是由于jvm启动时指定的最大栈内存Xss的大小不够，从而导致线程栈溢出。&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>
